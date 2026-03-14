@@ -1,0 +1,131 @@
+/* MaqueUp Lite — pure HTML/CSS/JS, no build step */
+:root{
+  --bg:#f5f5f7;
+  --text:#1d1d1f;
+  --muted:#6e6e73;
+  --card:#ffffff;
+  --soft:#f2f2f7;
+  --shadow: 0 16px 40px rgba(0,0,0,.10);
+  --radius:28px;
+  --tap: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color: var(--tap)}
+html,body{height:100%; margin:0; background:var(--bg); color:var(--text)}
+
+.app-container{
+  width:100%; height:100%;
+  display:flex; justify-content:center; align-items:center;
+  padding:0;
+}
+
+.shell{
+  width:100%; height:100%; background:var(--card);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+@media (min-width: 768px){
+  .app-container{padding:20px;}
+  .shell{max-width:390px; max-height:844px; border-radius:40px; box-shadow: var(--shadow);}
+}
+
+.header{
+  padding:22px 18px 12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.title{font-size:26px; font-weight:800; letter-spacing:-0.4px}
+.btn-icon{
+  width:42px; height:42px; border-radius:999px; border:0;
+  background:var(--soft); color:var(--text);
+  display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.btn-icon:active{transform:scale(.96)}
+
+.section{padding:0 18px 14px;}
+.section h2{margin:0 0 10px; font-size:18px; font-weight:800}
+.sub{margin:0 0 12px; color:var(--muted); font-size:13px}
+
+.row-scroll{display:flex; gap:12px; overflow:auto; padding-bottom:6px}
+.row-scroll::-webkit-scrollbar{display:none}
+
+.cat{
+  min-width:145px; height:168px; padding:14px;
+  border-radius:28px; color:#fff;
+  box-shadow: 0 10px 22px rgba(0,0,0,.10);
+  display:flex; flex-direction:column; justify-content:space-between;
+  cursor:pointer;
+}
+.cat:active{transform:scale(.96)}
+.cat .emoji{font-size:34px}
+.cat .name{font-weight:800}
+.cat .count{opacity:.9; font-size:13px}
+
+.gradient-food{background:linear-gradient(135deg,#FF9A44,#FC6076)}
+.gradient-cos{background:linear-gradient(135deg,#a18cd1,#fbc2eb)}
+.gradient-health{background:linear-gradient(135deg,#4facfe,#00f2fe)}
+
+.list{display:flex; flex-direction:column; gap:10px; padding-bottom:18px}
+.item{
+  background:var(--soft); border-radius:18px; padding:12px;
+  display:flex; align-items:center; gap:12px; cursor:pointer;
+}
+.item:active{transform:scale(.99)}
+.icon{
+  width:48px; height:48px; border-radius:16px;
+  background:#fff; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  font-size:24px;
+}
+.item .meta{flex:1; min-width:0}
+.item .meta .nm{font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.item .meta .sm{margin-top:2px; color:#ff9500; font-size:12px; font-weight:700}
+.chev{color:#c7c7cc; font-weight:900}
+
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  display:flex; justify-content:center; align-items:flex-end;
+  padding:0;
+}
+.modal{
+  width:100%; height:92%; background:#fff;
+  border-radius:36px 36px 0 0;
+  box-shadow:0 -10px 40px rgba(0,0,0,.18);
+  padding:18px;
+  display:flex; flex-direction:column;
+}
+
+@media (min-width:768px){
+  .modal-backdrop{align-items:center; padding:20px;}
+  .modal{max-width:560px; height:auto; border-radius:28px;}
+}
+
+.modal-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+.modal-head h3{margin:0; font-size:18px; font-weight:900}
+
+.input{
+  width:100%; padding:14px 14px; border-radius:18px;
+  border:0; background:var(--soft);
+  font-size:15px; outline:none;
+}
+textarea.input{min-height:110px; resize:none}
+
+.btn{
+  border:0; border-radius:16px; padding:12px 14px;
+  cursor:pointer; font-weight:800;
+}
+.btn-primary{background:#007aff; color:#fff}
+.btn-danger{background:#ff3b30; color:#fff}
+.btn-ghost{background:transparent; color:var(--muted)}
+
+.details-hero{height:42vh; background:#e9e9ee; position:relative; overflow:hidden}
+.details-hero img{width:100%; height:100%; object-fit:cover}
+.details-back{position:absolute; top:14px; left:14px}
+.details-sheet{margin-top:-18px; background:#fff; border-radius:32px 32px 0 0; padding:18px; flex:1; overflow:auto}
+.kv{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0 14px}
+.kv .box{background:#f6f6f9; border-radius:18px; padding:12px}
+.kv .lbl{color:#9c9ca3; font-size:10px; letter-spacing:1.5px; font-weight:900}
+.kv .val{margin-top:6px; font-weight:900}
+.kv .val2{margin-top:4px; font-size:12px; color:#ff9500; font-weight:800}
+
+.badge{display:inline-flex; align-items:center; gap:8px}

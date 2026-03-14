@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const url = process.argv[2] || 'http://localhost:5178/';
+const out = process.argv[3] || 'maqueup_lite.png';
+const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const page = await browser.newPage({ viewport: { width: 430, height: 900 } });
+await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
+await page.waitForTimeout(800);
+await page.screenshot({ path: out, fullPage: true });
+await browser.close();
+console.log('saved', out);
