@@ -76,6 +76,23 @@ function iconEmoji(iconId) {
   return PIXEL_ICONS.find((x) => x.id === iconId)?.emoji || '✨';
 }
 
+function makeThumb(el, item) {
+  const photo = (item.photo || '').trim();
+  if (photo) {
+    const img = document.createElement('img');
+    img.src = photo;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => {
+      el.textContent = iconEmoji(item.icon);
+    });
+    el.appendChild(img);
+    return;
+  }
+  el.textContent = iconEmoji(item.icon);
+}
+
 function categoryMeta(cat) {
   if (cat === 'food') return { emoji: '🍱', label: 'Food', cls: 'gradient-food' };
   if (cat === 'cosmetic') return { emoji: '✨', label: 'Beauty', cls: 'gradient-cos' };
@@ -212,14 +229,26 @@ function renderDashboard() {
   for (const item of exp) {
     const rowItem = document.createElement('div');
     rowItem.className = 'item';
-    rowItem.innerHTML = `
-      <div class="icon">${iconEmoji(item.icon)}</div>
-      <div class="meta">
-        <div class="nm">${escapeHtml(item.name)}</div>
-        <div class="sm">${escapeHtml(getDaysRemaining(item.expiryDate))}</div>
-      </div>
-      <div class="chev">›</div>
+
+    const iconBox = document.createElement('div');
+    iconBox.className = 'icon';
+    makeThumb(iconBox, item);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `
+      <div class="nm">${escapeHtml(item.name)}</div>
+      <div class="sm">${escapeHtml(getDaysRemaining(item.expiryDate))}</div>
     `;
+
+    const chev = document.createElement('div');
+    chev.className = 'chev';
+    chev.textContent = '›';
+
+    rowItem.appendChild(iconBox);
+    rowItem.appendChild(meta);
+    rowItem.appendChild(chev);
+
     rowItem.addEventListener('click', () => {
       state.selectedProductId = item.id;
       state.view = 'details';
@@ -288,14 +317,26 @@ function renderCategory() {
   for (const item of items) {
     const rowItem = document.createElement('div');
     rowItem.className = 'item';
-    rowItem.innerHTML = `
-      <div class="icon">${iconEmoji(item.icon)}</div>
-      <div class="meta">
-        <div class="nm">${escapeHtml(item.name)}</div>
-        <div class="sm">${escapeHtml(item.expiryDate)}</div>
-      </div>
-      <div class="chev">›</div>
+
+    const iconBox = document.createElement('div');
+    iconBox.className = 'icon';
+    makeThumb(iconBox, item);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `
+      <div class="nm">${escapeHtml(item.name)}</div>
+      <div class="sm">${escapeHtml(item.expiryDate)}</div>
     `;
+
+    const chev = document.createElement('div');
+    chev.className = 'chev';
+    chev.textContent = '›';
+
+    rowItem.appendChild(iconBox);
+    rowItem.appendChild(meta);
+    rowItem.appendChild(chev);
+
     rowItem.addEventListener('click', () => {
       state.selectedProductId = item.id;
       state.view = 'details';
