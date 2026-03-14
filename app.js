@@ -66,6 +66,9 @@ const state = {
   view: 'dashboard',
   selectedCategory: null,
   selectedProductId: null,
+  // tabs
+  categoryTab: 'all',
+  expTab: 'all',
   products: loadProducts(),
 };
 
@@ -77,6 +80,36 @@ function categoryMeta(cat) {
   if (cat === 'food') return { emoji: '🍱', label: 'Food', cls: 'gradient-food' };
   if (cat === 'cosmetic') return { emoji: '✨', label: 'Beauty', cls: 'gradient-cos' };
   return { emoji: '💊', label: 'Health', cls: 'gradient-health' };
+}
+
+function tabLabelForIcon(iconId) {
+  const found = PIXEL_ICONS.find((x) => x.id === iconId);
+  if (found) return `${found.emoji} ${found.label}`;
+  return iconId;
+}
+
+function iconTabsForCategory(cat) {
+  const ids = Array.from(
+    new Set(state.products.filter((p) => p.category === cat).map((p) => p.icon).filter(Boolean))
+  );
+  // keep a stable order: use PIXEL_ICONS order first, then any extras
+  const ordered = [];
+  for (const x of PIXEL_ICONS) if (ids.includes(x.id)) ordered.push(x.id);
+  for (const id of ids) if (!ordered.includes(id)) ordered.push(id);
+  return ['all', ...ordered];
+}
+
+function makeTabs(active, tabs, onPick) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tabs no-scrollbar';
+  for (const t of tabs) {
+    const btn = document.createElement('button');
+    btn.className = `tab ${t === active ? 'active' : ''}`;
+    btn.textContent = t === 'all' ? 'All' : tabLabelForIcon(t);
+    btn.addEventListener('click', () => onPick(t));
+    wrap.appendChild(btn);
+  }
+  return wrap;
 }
 
 function render() {
@@ -143,6 +176,7 @@ function renderDashboard() {
     `;
     card.addEventListener('click', () => {
       state.selectedCategory = c;
+      state.categoryTab = 'all';
       state.view = 'category';
       render();
     });
@@ -150,14 +184,27 @@ function renderDashboard() {
   }
   sectionCats.appendChild(row);
 
-  // expiring soon
-  const exp = [...state.products]
-    .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate))
-    .slice(0, 8);
+  // expiring soon (with Beauty subtype tabs)
+  const expAll = [...state.products].sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+
+  const beautyTabs = iconTabsForCategory('cosmetic');
+  const expFiltered = state.expTab === 'all'
+    ? expAll
+    : expAll.filter((p) => p.category === 'cosmetic' && p.icon === state.expTab);
+
+  const exp = expFiltered.slice(0, 8);
 
   const sectionExp = document.createElement('div');
   sectionExp.className = 'section';
   sectionExp.innerHTML = `<h2>Expiring Soon</h2><p class="sub">Open details to manage</p>`;
+
+  // tabs under Expiring Soon (skincare subtypes)
+  sectionExp.appendChild(
+    makeTabs(state.expTab, beautyTabs, (t) => {
+      state.expTab = t;
+      render();
+    }),
+  );
 
   const list = document.createElement('div');
   list.className = 'list';
@@ -224,10 +271,20 @@ function renderCategory() {
   section.className = 'section';
   section.innerHTML = `<p class="sub">${meta.emoji} ${meta.label} items</p>`;
 
+  // tabs at top for subtypes (by icon)
+  const tabs = iconTabsForCategory(cat);
+  section.appendChild(
+    makeTabs(state.categoryTab, tabs, (t) => {
+      state.categoryTab = t;
+      render();
+    }),
+  );
+
   const list = document.createElement('div');
   list.className = 'list';
 
-  const items = state.products.filter((p) => p.category === cat);
+  const itemsAll = state.products.filter((p) => p.category === cat);
+  const items = state.categoryTab === 'all' ? itemsAll : itemsAll.filter((p) => p.icon === state.categoryTab);
   for (const item of items) {
     const rowItem = document.createElement('div');
     rowItem.className = 'item';
