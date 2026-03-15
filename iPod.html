@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPod Classic - Cinematic Edition</title>
+    <title>iPod Classic - Nostalgic Video Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
@@ -27,41 +27,13 @@
             border: 1px solid #999;
         }
 
-        /* * 核心改动：增加 screen-wrapper 占位 
-         * 这样屏幕放大时，底下的滚轮不会跟着错位跳动
-         */
-        .screen-wrapper {
-            position: relative;
-            width: 300px; height: 215px; 
-            margin-top: 2px;
-            z-index: 200; /* 保证放大的时候不会被遮挡 */
-        }
-
-        /* 原本的 screen 变成 absolute 定位，为放大做准备 */
+        /* 恢复原汁原味的固定屏幕尺寸 */
         .screen {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
             width: 300px; height: 215px; background-color: #000;
             border: 3px solid #222; border-radius: 6px; overflow: hidden;
-            display: flex; flex-direction: column;
-            
-            /* Apple 经典慢动作回弹动画 */
-            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        /* * 🌟 MP4 专属影院模式 (Cinema Mode) 
-         */
-        .screen.cinema-mode {
-            width: 85vw; /* 根据浏览器宽度自适应放大 */
-            max-width: 900px;
-            aspect-ratio: 16 / 10; /* 锁定 16:10 黄金比例大屏 */
-            height: auto;
-            border-radius: 16px;
-            border: 1px solid #444;
-            /* 100vmax 的巨型阴影瞬间制造全屏变暗的沉浸感，不用写额外的遮罩层 */
-            box-shadow: 0 0 0 100vmax rgba(0,0,0,0.85), 0 40px 100px rgba(0,0,0,0.9);
-            z-index: 9999;
+            position: relative; display: flex; flex-direction: column;
+            margin-top: 2px;
+            transition: background 0.3s ease;
         }
 
         .status-bar {
@@ -69,17 +41,19 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 8px; font-size: 11px; font-weight: bold; color: #333;
             border-bottom: 1px solid #666; z-index: 100; flex-shrink: 0;
-            transition: all 1.2s ease;
+            transition: all 0.3s ease;
         }
 
-        /* 影院模式下，状态栏变成半透明的控制条 */
+        /* 播放视频时，状态栏变成半透明暗色系，不抢戏 */
         .screen.cinema-mode .status-bar {
-            background: rgba(0,0,0,0.6);
-            color: #eee;
-            border-bottom: 1px solid #333;
+            background: rgba(0,0,0,0.8);
+            color: #ccc;
+            border-bottom: 1px solid #222;
         }
 
-        .content-area { flex: 1; background: #fff; position: relative; overflow: hidden; }
+        .content-area { flex: 1; background: #fff; position: relative; overflow: hidden; transition: background 0.3s ease; }
+        
+        /* 播放视频时，内容区纯黑，完美融合黑边 */
         .screen.cinema-mode .content-area { background: #000; }
 
         /* 导入界面 */
@@ -135,7 +109,6 @@
         .player-art { 
             width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
             object-fit: cover; background: #000; flex-shrink: 0;
-            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .player-meta { width: 140px; overflow: hidden; }
@@ -145,21 +118,20 @@
         .track-bar { width: 100%; height: 18px; background: #eee; border: 1px solid #ccc; position: relative; cursor: pointer; }
         .track-fill { height: 100%; background: var(--apple-blue); width: 0%; pointer-events: none;}
 
-        /* * 影院模式布局切换：隐藏文本，让视频霸占所有空间，悬浮显示进度条 
-         */
+        /* 🌟 怀旧影院模式：在 iPod 屏幕内部全屏显示，带有经典的悬浮控制条 */
         .screen.cinema-mode #player-view { padding: 0; justify-content: center; }
         .screen.cinema-mode .player-header { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; gap: 0; }
-        .screen.cinema-mode .player-art { width: 100% !important; height: 100% !important; object-fit: contain; border-radius: 0; box-shadow: none; }
+        .screen.cinema-mode .player-art { width: 100%; height: 100%; object-fit: contain; border-radius: 0; box-shadow: none; }
         .screen.cinema-mode .player-meta { display: none; }
         .screen.cinema-mode .progress-box {
-            position: absolute; bottom: 30px; left: 5%; width: 90%; z-index: 10;
-            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; backdrop-filter: blur(5px);
-            opacity: 0; transition: opacity 0.5s ease;
+            position: absolute; bottom: 10px; left: 5%; width: 90%; z-index: 10;
+            background: rgba(0,0,0,0.6); padding: 5px 8px; border-radius: 6px; 
+            opacity: 0; transition: opacity 0.3s ease; box-sizing: border-box;
         }
         .screen.cinema-mode:hover .progress-box { opacity: 1; }
-        .screen.cinema-mode .track-bar { background: rgba(255,255,255,0.3); border: none; }
+        .screen.cinema-mode .track-bar { background: rgba(255,255,255,0.3); border: none; height: 10px; border-radius: 5px; overflow: hidden; }
         .screen.cinema-mode .track-fill { background: #fff; }
-        .screen.cinema-mode #time-cur, .screen.cinema-mode #time-total { color: #fff; text-shadow: 0 1px 2px #000; }
+        .screen.cinema-mode #time-cur, .screen.cinema-mode #time-total { color: #fff; text-shadow: 0 1px 2px #000; margin-top: 2px;}
 
         /* 轮盘 */
         .click-wheel {
@@ -182,55 +154,53 @@
 <body>
 
 <div class="ipod">
-    <div class="screen-wrapper">
-        <div class="screen" id="main-screen">
-            <div class="status-bar">
-                <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
-                <span id="clock">12:00</span>
-                <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; font-size: 12px;" title="Add More">🔋 ➕</span>
+    <div class="screen" id="main-screen">
+        <div class="status-bar">
+            <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
+            <span id="clock">12:00</span>
+            <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; font-size: 12px;" title="Add More">🔋 ➕</span>
+        </div>
+        
+        <div class="content-area">
+            <div id="import-view">
+                <input type="file" id="file-input" accept=".mp3,.wav,.flac,.mp4,audio/*,video/mp4" multiple style="display:none">
+                <button class="import-btn" onclick="hapticTap(20); document.getElementById('file-input').click()">Import Media (Audio/Video)</button>
+                <p style="font-size: 12px; color: #666; margin-top:10px;">MP3, WAV, FLAC, MP4 (Max 1000)</p>
+                <p id="loading-text" style="font-size: 12px; color: var(--apple-blue); font-weight:bold;"></p>
             </div>
-            
-            <div class="content-area">
-                <div id="import-view">
-                    <input type="file" id="file-input" accept=".mp3,.wav,.flac,.mp4,audio/*,video/mp4" multiple style="display:none">
-                    <button class="import-btn" onclick="hapticTap(20); document.getElementById('file-input').click()">Import Media (Audio/Video)</button>
-                    <p style="font-size: 12px; color: #666; margin-top:10px;">MP3, WAV, FLAC, MP4 (Max 1000)</p>
-                    <p id="loading-text" style="font-size: 12px; color: var(--apple-blue); font-weight:bold;"></p>
-                </div>
 
-                <div id="list-view">
-                    <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
-                        <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
-                    </div>
-                    <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
-                        <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
-                    </div>
-                    <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
+            <div id="list-view">
+                <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
+                    <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
                 </div>
-
-                <div id="cover-flow-view">
-                    <div class="cf-container" id="cf-container"></div>
-                    <div class="album-info-overlay" id="cf-info">Artist - Title</div>
+                <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
+                    <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
                 </div>
+                <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
+            </div>
 
-                <div id="player-view">
-                    <div class="player-header">
-                        <img src="" id="p-img" class="player-art">
-                        <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
-                        <div class="player-meta">
-                            <h3 id="p-title">Title</h3>
-                            <p id="p-artist">Artist</p>
-                            <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
-                        </div>
+            <div id="cover-flow-view">
+                <div class="cf-container" id="cf-container"></div>
+                <div class="album-info-overlay" id="cf-info">Artist - Title</div>
+            </div>
+
+            <div id="player-view">
+                <div class="player-header">
+                    <img src="" id="p-img" class="player-art">
+                    <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
+                    <div class="player-meta">
+                        <h3 id="p-title">Title</h3>
+                        <p id="p-artist">Artist</p>
+                        <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
                     </div>
-                    <div class="progress-box">
-                        <div class="track-bar" id="track-bar" onclick="hapticTap(10); seek(event)">
-                            <div class="track-fill" id="track-fill"></div>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
-                            <span id="time-cur">0:00</span>
-                            <span id="time-total">0:00</span>
-                        </div>
+                </div>
+                <div class="progress-box">
+                    <div class="track-bar" id="track-bar" onclick="hapticTap(10); seek(event)">
+                        <div class="track-fill" id="track-fill"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
+                        <span id="time-cur">0:00</span>
+                        <span id="time-total">0:00</span>
                     </div>
                 </div>
             </div>
@@ -386,7 +356,6 @@
     function goHome() {
         if(playlist.length === 0) return; 
         hideAllViews();
-        // 关键：退出时取消影院模式，屏幕将平滑缩小归位
         screenEl.classList.remove('cinema-mode');
         document.getElementById('list-view').style.display = 'block';
         currentMode = 'list';
@@ -439,7 +408,7 @@
         }
     });
 
-    // --- 修改了这里：智能判定 MP4 播放触发放大 ---
+    // --- 内部影院模式切换逻辑 ---
     function playSong(idx) {
         if(playlist.length === 0) return;
         currentIndex = idx; const s = playlist[idx];
@@ -452,13 +421,12 @@
         if (s.isVideo) {
             document.getElementById('p-img').style.display = 'none';
             media.style.display = 'block';
-            // MP4触发：增加类名，利用 CSS 1.2s 慢动作渲染成为大屏幕
+            // 添加类名，在内部重排版成纯黑背景 + 全屏视频
             screenEl.classList.add('cinema-mode');
         } else {
             document.getElementById('p-img').style.display = 'block';
             document.getElementById('p-img').src = s.cover;
             media.style.display = 'none';
-            // 音乐触发：移除类名，平滑缩回 iPod 原始尺寸
             screenEl.classList.remove('cinema-mode');
         }
         
