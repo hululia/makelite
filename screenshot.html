@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>iPhone 快捷指令：多图首尾拼接（离线版）</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;line-height:1.55;margin:24px;max-width:860px}
+    code,pre{background:#f5f5f7;border:1px solid #e5e5ea;border-radius:10px}
+    pre{padding:14px;overflow:auto}
+    h1{margin:0 0 10px}
+    .tip{background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:12px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;padding:12px;border-radius:12px}
+    ol{padding-left:20px}
+    li{margin:10px 0}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#111;color:#fff;font-size:12px;margin-right:6px}
+  </style>
+</head>
+<body>
+  <h1>快捷指令：多张图首尾拼接成长图（离线）</h1>
+
+  <div class="tip">
+    <b>重要限制：</b>快捷指令无法“自动识别重叠区域并无痕拼接”。<br/>
+    但你可以做到：<b>自动按顺序拼接</b>；若存在重叠，可用<b>手动裁剪</b>掉重叠部分，实现肉眼无缝。
+  </div>
+
+  <h2>目标</h2>
+  <ul>
+    <li>选择多张照片（截图/相片都行）</li>
+    <li>按顺序拼接：<b>纵向长图</b>（最常用）或横向长图</li>
+    <li>可选：每张图拼接前<b>手动裁剪</b>去掉与上一张重叠的边缘</li>
+  </ul>
+
+  <h2>创建快捷指令（一步一步照做）</h2>
+  <ol>
+    <li>
+      打开 <b>快捷指令</b> App → 右上角 <b>＋</b> 新建 → 命名：<b>无痕拼接（离线）</b>
+    </li>
+
+    <li>
+      <span class="badge">动作 1</span>添加动作：<b>选择照片</b><br/>
+      设置：开启「<b>允许选择多项</b>」
+    </li>
+
+    <li>
+      <span class="badge">动作 2</span>添加动作：<b>快速查看</b><br/>
+      （可选，用来预览你选的顺序是否正确；确认后点完成返回）
+    </li>
+
+    <li>
+      <span class="badge">动作 3</span>添加动作：<b>获取项目（Get Item from List）</b><br/>
+      从「选择照片」的结果中获取：<b>第一项</b><br/>
+      （这会作为初始底图）
+    </li>
+
+    <li>
+      <span class="badge">动作 4</span>添加动作：<b>设置变量</b><br/>
+      变量名：<b>Result</b>，值：上一步「第一项」
+    </li>
+
+    <li>
+      <span class="badge">动作 5</span>添加动作：<b>重复操作（Repeat with Each）</b><br/>
+      列表：使用「选择照片」的结果
+      <div class="tip" style="margin-top:8px">
+        在循环里我们要跳过第一张（因为已经作为 Result 了）。快捷指令里没有“continue”，做法是：<br/>
+        在循环最开头加一个「如果」：如果 当前项目 等于 Result → 什么都不做（或直接放一个空动作）→ 否则继续下面动作。
+      </div>
+    </li>
+
+    <li>
+      <span class="badge">循环内</span>添加动作：<b>如果（If）</b><br/>
+      条件：<b>重复项目</b>「等于」<b>变量 Result</b><br/>
+      → 如果为真：什么都不做（留空）<br/>
+      → 否则：执行下面步骤
+    </li>
+
+    <li>
+      <span class="badge">循环内</span><b>（可选）手动无痕：裁剪重叠</b><br/>
+      添加动作：<b>裁剪图像（Crop Image）</b><br/>
+      输入：<b>重复项目</b><br/>
+      你手动把“顶部/底部或左右的重叠区域”裁掉，然后点完成。
+      <div class="ok" style="margin-top:8px">
+        如果你是「滚动截图」：通常裁掉<b>当前图顶部</b>一点点就能无缝。<br/>
+        如果你是「拍照拼接」：可能需要裁掉边缘以避免重复物体。
+      </div>
+    </li>
+
+    <li>
+      <span class="badge">循环内</span>添加动作：<b>合并图像（Combine Images）</b><br/>
+      输入：<b>变量 Result</b> + <b>（裁剪后的图像或重复项目）</b><br/>
+      方向：<b>垂直</b>（或水平）<br/>
+      间距：<b>0</b>
+    </li>
+
+    <li>
+      <span class="badge">循环内</span>添加动作：<b>设置变量</b><br/>
+      变量名：<b>Result</b>，值：上一步「合并图像」输出
+    </li>
+
+    <li>
+      循环结束后添加：<b>快速查看</b>（查看最终拼接图）<br/>
+      然后添加：<b>保存到相簿</b>（可选）
+    </li>
+  </ol>
+
+  <h2>使用建议</h2>
+  <ul>
+    <li>为了更“无痕”，请尽量确保相邻两张图的重叠区域一致（例如滚动截图）</li>
+    <li>如果你经常拼同一类截图，裁剪时每次裁同样高度会很快</li>
+  </ul>
+
+  <h2>想要“自动识别重叠并无痕拼接”（真正全自动）？</h2>
+  <p>
+    需要用 OpenCV 或支持该能力的第三方 App。你如果接受“快捷指令调用一个接口来拼接”，
+    我可以给你做：<b>选图 → 上传 → 自动缝合 → 返回保存</b> 的完整版。
+  </p>
+</body>
+</html>
