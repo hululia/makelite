@@ -123,6 +123,10 @@ html,body{height:100%; margin:0; background:var(--bg); color:var(--text)}
 .modal-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
 .modal-head h3{margin:0; font-size:18px; font-weight:900}
 
+.voice-row{display:flex; gap:10px; align-items:flex-start; padding:10px 10px; background:rgba(0,0,0,0.03); border-radius:18px}
+.voice-hint{flex:1}
+.btn-icon.listening{background:#ff3b30; color:#fff}
+
 .input{
   width:100%; padding:14px 14px; border-radius:18px;
   border:0; background:var(--soft);

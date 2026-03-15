@@ -39,6 +39,66 @@ function uid() {
   return Math.random().toString(36).slice(2, 11);
 }
 
+// ================================
+// Voice input (Web Speech API)
+// ================================
+function getSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  return SR;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function parseDateFromText(text) {
+  // Match: 2027年7月1日 / 2027-07-01 / 2027/7/1
+  const m = text.match(/(\d{4})\s*(?:年|[-\/\.])\s*(\d{1,2})\s*(?:月|[-\/\.])\s*(\d{1,2})\s*(?:日)?/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!y || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${pad2(mo)}-${pad2(d)}`;
+}
+
+function guessIconAndCategory(text) {
+  const t = text.toLowerCase();
+  // Chinese keywords
+  if (/[口唇]红|唇膏|lipstick/.test(text) || t.includes('ysl')) return { icon: 'lipstick', category: 'cosmetic' };
+  if (/精华|serum/.test(text)) return { icon: 'serum', category: 'cosmetic' };
+  if (/乳液|lotion/.test(text)) return { icon: 'lotion', category: 'cosmetic' };
+  if (/面霜|cream/.test(text)) return { icon: 'cream', category: 'cosmetic' };
+  if (/化妆水|爽肤水|toner/.test(text)) return { icon: 'toner', category: 'cosmetic' };
+  if (/洁面|洗面奶|cleanser/.test(text)) return { icon: 'cleanser', category: 'cosmetic' };
+  if (/鸡蛋|egg/.test(text)) return { icon: 'egg', category: 'food' };
+  if (/香蕉|banana/.test(text)) return { icon: 'banana', category: 'food' };
+  return { icon: 'lipstick', category: 'cosmetic' };
+}
+
+function parseAddCommand(text) {
+  // Example: "请加一只ysl口红，过期日期是2027，7月1日"
+  const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
+  const expiryDate = parseDateFromText(cleaned);
+
+  // Try extract name after 加/添加/新增
+  let name = '';
+  const nameMatch = cleaned.match(/(?:请)?(?:帮我)?(?:加|添加|新增|加入)\s*(?:一|1)?\s*(?:个|只|支|瓶|盒|罐)?\s*([^，,。]+?)(?:，|,|。|$|过期|到期|有效期)/);
+  if (nameMatch) name = nameMatch[1].trim();
+  if (!name) name = cleaned;
+
+  const { icon, category } = guessIconAndCategory(cleaned);
+
+  return {
+    name,
+    expiryDate,
+    icon,
+    category,
+    raw: cleaned,
+  };
+}
+
 function getDaysRemaining(dateStr) {
   const diff = new Date(dateStr).getTime() - Date.now();
   const days = Math.ceil(diff / 86400000);
@@ -391,6 +451,19 @@ function renderDetails() {
     <div style="color:#6e6e73;font-weight:900;font-size:11px;letter-spacing:2px;margin-top:4px">${escapeHtml(item.category.toUpperCase())}</div>
   `;
 
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn';
+  editBtn.style.background = '#f2f2f7';
+  editBtn.style.color = '#1d1d1f';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', () => {
+    document.body.appendChild(renderEditModal(item));
+  });
+
   const del = document.createElement('button');
   del.className = 'btn btn-danger';
   del.textContent = 'Delete';
@@ -402,8 +475,11 @@ function renderDetails() {
     render();
   });
 
+  actions.appendChild(editBtn);
+  actions.appendChild(del);
+
   top.appendChild(left);
-  top.appendChild(del);
+  top.appendChild(actions);
 
   const kv = document.createElement('div');
   kv.className = 'kv';
@@ -437,6 +513,125 @@ function renderDetails() {
   root.appendChild(hero);
   root.appendChild(sheet);
   return root;
+}
+
+function renderEditModal(item) {
+  // remove any existing modal
+  const existing = document.querySelector('.modal-backdrop');
+  if (existing) existing.remove();
+
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const head = document.createElement('div');
+  head.className = 'modal-head';
+  head.innerHTML = `<button class="btn btn-ghost">Cancel</button><h3>Edit Item</h3><button class="btn btn-primary">Update</button>`;
+
+  const [btnCancel, , btnSave] = head.children;
+
+  btnCancel.addEventListener('click', () => {
+    bd.remove();
+  });
+
+  const form = document.createElement('div');
+  form.style.display = 'flex';
+  form.style.flexDirection = 'column';
+  form.style.gap = '10px';
+
+  const inpName = document.createElement('input');
+  inpName.className = 'input';
+  inpName.placeholder = 'Product Name';
+  inpName.value = item.name || '';
+
+  const inpDate = document.createElement('input');
+  inpDate.className = 'input';
+  inpDate.type = 'date';
+  inpDate.value = item.expiryDate || '';
+
+  const selCat = document.createElement('select');
+  selCat.className = 'input';
+  selCat.innerHTML = `
+    <option value="cosmetic">cosmetic</option>
+    <option value="food">food</option>
+    <option value="health">health</option>
+  `;
+  selCat.value = item.category || 'cosmetic';
+
+  const inpBatch = document.createElement('input');
+  inpBatch.className = 'input';
+  inpBatch.placeholder = 'Batch Number (optional)';
+  inpBatch.value = item.batchNumber || '';
+
+  const inpPao = document.createElement('input');
+  inpPao.className = 'input';
+  inpPao.placeholder = 'PAO (e.g. 12M)';
+  inpPao.value = item.pao || '';
+
+  const inpPhoto = document.createElement('input');
+  inpPhoto.className = 'input';
+  inpPhoto.placeholder = 'Image URL (optional)';
+  inpPhoto.value = item.photo || '';
+
+  const selIcon = document.createElement('select');
+  selIcon.className = 'input';
+  selIcon.innerHTML = PIXEL_ICONS.map((x) => `<option value="${x.id}">${x.emoji} ${x.label}</option>`).join('');
+  selIcon.value = item.icon || 'lipstick';
+
+  const taInfo = document.createElement('textarea');
+  taInfo.className = 'input';
+  taInfo.placeholder = 'Notes';
+  taInfo.value = item.info || '';
+
+  form.appendChild(inpName);
+  form.appendChild(inpDate);
+  form.appendChild(selCat);
+  form.appendChild(inpBatch);
+  form.appendChild(inpPao);
+  form.appendChild(inpPhoto);
+  form.appendChild(selIcon);
+  form.appendChild(taInfo);
+
+  btnSave.addEventListener('click', () => {
+    const name = inpName.value.trim();
+    const expiryDate = inpDate.value;
+    const category = selCat.value;
+    if (!name || !expiryDate) {
+      alert('Please fill Name and Date');
+      return;
+    }
+
+    const updated = {
+      ...item,
+      name,
+      category,
+      expiryDate,
+      batchNumber: inpBatch.value.trim() || undefined,
+      pao: inpPao.value.trim() || undefined,
+      photo: inpPhoto.value.trim() || `https://picsum.photos/seed/${encodeURIComponent(name)}/900/650`,
+      icon: selIcon.value,
+      info: taInfo.value.trim() || undefined,
+      updatedAt: Date.now(),
+    };
+
+    state.products = state.products.map((p) => (p.id === item.id ? updated : p));
+    saveProducts(state.products);
+    bd.remove();
+    // keep user on details view
+    state.selectedProductId = item.id;
+    render();
+  });
+
+  modal.appendChild(head);
+  modal.appendChild(form);
+  bd.appendChild(modal);
+  bd.addEventListener('click', (e) => {
+    if (e.target === bd) bd.remove();
+  });
+
+  return bd;
 }
 
 function renderAddModal() {
@@ -503,6 +698,78 @@ function renderAddModal() {
   taInfo.className = 'input';
   taInfo.placeholder = 'Notes';
 
+  // Voice input row
+  const voiceRow = document.createElement('div');
+  voiceRow.className = 'voice-row';
+
+  const micBtn = document.createElement('button');
+  micBtn.className = 'btn-icon';
+  micBtn.type = 'button';
+  micBtn.textContent = '🎙️';
+
+  const voiceHint = document.createElement('div');
+  voiceHint.className = 'voice-hint';
+  voiceHint.innerHTML = `
+    <div style="font-weight:900">Voice add</div>
+    <div style="font-size:12px;color:#6e6e73">例如：请加一只 YSL 口红，过期日期是 2027年7月1日</div>
+  `;
+
+  voiceRow.appendChild(micBtn);
+  voiceRow.appendChild(voiceHint);
+
+  const SR = getSpeechRecognition();
+  let recognition = null;
+  let listening = false;
+  if (SR) {
+    recognition = new SR();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (ev) => {
+      const text = ev.results?.[0]?.[0]?.transcript || '';
+      const parsed = parseAddCommand(text);
+      if (parsed.name) inpName.value = parsed.name;
+      if (parsed.expiryDate) inpDate.value = parsed.expiryDate;
+      if (parsed.category) selCat.value = parsed.category;
+      if (parsed.icon) selIcon.value = parsed.icon;
+      // leave photo/info for manual
+    };
+
+    recognition.onerror = () => {
+      // ignore
+    };
+
+    recognition.onend = () => {
+      listening = false;
+      micBtn.classList.remove('listening');
+      micBtn.textContent = '🎙️';
+    };
+
+    micBtn.addEventListener('click', async () => {
+      try {
+        if (listening) {
+          recognition.stop();
+          return;
+        }
+        listening = true;
+        micBtn.classList.add('listening');
+        micBtn.textContent = '⏺';
+        recognition.start();
+      } catch (e) {
+        listening = false;
+        micBtn.classList.remove('listening');
+        micBtn.textContent = '🎙️';
+        alert('Voice recognition is not available. Please use Safari/Chrome and allow microphone.');
+      }
+    });
+  } else {
+    micBtn.disabled = true;
+    micBtn.style.opacity = '0.4';
+    voiceHint.querySelector('div:last-child').textContent = '当前浏览器不支持语音识别（Web Speech API）。';
+  }
+
+  form.appendChild(voiceRow);
   form.appendChild(inpName);
   form.appendChild(inpDate);
   form.appendChild(selCat);
