@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPod Classic - Pro Media Edition</title>
+    <title>iPod Classic - Cinematic Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
@@ -27,12 +27,41 @@
             border: 1px solid #999;
         }
 
-        /* 更新：宽度 300px，下移 2px */
+        /* * 核心改动：增加 screen-wrapper 占位 
+         * 这样屏幕放大时，底下的滚轮不会跟着错位跳动
+         */
+        .screen-wrapper {
+            position: relative;
+            width: 300px; height: 215px; 
+            margin-top: 2px;
+            z-index: 200; /* 保证放大的时候不会被遮挡 */
+        }
+
+        /* 原本的 screen 变成 absolute 定位，为放大做准备 */
         .screen {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
             width: 300px; height: 215px; background-color: #000;
             border: 3px solid #222; border-radius: 6px; overflow: hidden;
-            position: relative; display: flex; flex-direction: column;
-            margin-top: 2px; 
+            display: flex; flex-direction: column;
+            
+            /* Apple 经典慢动作回弹动画 */
+            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* * 🌟 MP4 专属影院模式 (Cinema Mode) 
+         */
+        .screen.cinema-mode {
+            width: 85vw; /* 根据浏览器宽度自适应放大 */
+            max-width: 900px;
+            aspect-ratio: 16 / 10; /* 锁定 16:10 黄金比例大屏 */
+            height: auto;
+            border-radius: 16px;
+            border: 1px solid #444;
+            /* 100vmax 的巨型阴影瞬间制造全屏变暗的沉浸感，不用写额外的遮罩层 */
+            box-shadow: 0 0 0 100vmax rgba(0,0,0,0.85), 0 40px 100px rgba(0,0,0,0.9);
+            z-index: 9999;
         }
 
         .status-bar {
@@ -40,9 +69,18 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 8px; font-size: 11px; font-weight: bold; color: #333;
             border-bottom: 1px solid #666; z-index: 100; flex-shrink: 0;
+            transition: all 1.2s ease;
+        }
+
+        /* 影院模式下，状态栏变成半透明的控制条 */
+        .screen.cinema-mode .status-bar {
+            background: rgba(0,0,0,0.6);
+            color: #eee;
+            border-bottom: 1px solid #333;
         }
 
         .content-area { flex: 1; background: #fff; position: relative; overflow: hidden; }
+        .screen.cinema-mode .content-area { background: #000; }
 
         /* 导入界面 */
         #import-view {
@@ -58,37 +96,22 @@
 
         /* 列表视图与左滑删除 UI */
         #list-view { width: 100%; height: 100%; display: none; }
-        
-        .menu-item-wrapper {
-            position: relative; overflow: hidden; background: #fff;
-            border-bottom: 1px solid #eee;
-        }
-        
+        .menu-item-wrapper { position: relative; overflow: hidden; background: #fff; border-bottom: 1px solid #eee; }
         .delete-btn {
             position: absolute; right: 0; top: 0; bottom: 0; width: 70px;
             background-color: var(--apple-red); color: white; display: flex;
-            align-items: center; justify-content: center; font-weight: bold;
-            font-size: 13px; cursor: pointer; z-index: 1;
+            align-items: center; justify-content: center; font-weight: bold; font-size: 13px; cursor: pointer; z-index: 1;
         }
-
         .menu-item {
             padding: 10px 12px; font-size: 14px; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
-            background: #fff; position: relative; z-index: 2;
-            cursor: pointer;
+            background: #fff; position: relative; z-index: 2; cursor: pointer;
         }
-        /* 当没有在拖拽时，点击出现经典蓝色高亮 */
         .menu-item:active { background: #f0f0f5; }
 
         /* Cover Flow */
-        #cover-flow-view {
-            width: 100%; height: 100%; background: #000; display: none;
-            perspective: 800px; overflow: hidden;
-        }
-        .cf-container {
-            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
-            display: flex; align-items: center; justify-content: center;
-        }
+        #cover-flow-view { width: 100%; height: 100%; background: #000; display: none; perspective: 800px; overflow: hidden; }
+        .cf-container { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; }
         .album-card {
             position: absolute; width: 110px; height: 110px;
             background-size: cover; background-position: center; background-color: #333;
@@ -108,14 +131,35 @@
             padding: 15px; box-sizing: border-box; background: #fff;
         }
         .player-header { display: flex; gap: 15px; }
-        .player-art { width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); object-fit: cover; background: #000; flex-shrink: 0; }
+        
+        .player-art { 
+            width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+            object-fit: cover; background: #000; flex-shrink: 0;
+            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
         .player-meta { width: 140px; overflow: hidden; }
         .player-meta h3 { margin: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .player-meta p { margin: 5px 0; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
         .progress-box { margin-top: 30px; }
         .track-bar { width: 100%; height: 18px; background: #eee; border: 1px solid #ccc; position: relative; cursor: pointer; }
         .track-fill { height: 100%; background: var(--apple-blue); width: 0%; pointer-events: none;}
+
+        /* * 影院模式布局切换：隐藏文本，让视频霸占所有空间，悬浮显示进度条 
+         */
+        .screen.cinema-mode #player-view { padding: 0; justify-content: center; }
+        .screen.cinema-mode .player-header { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; gap: 0; }
+        .screen.cinema-mode .player-art { width: 100% !important; height: 100% !important; object-fit: contain; border-radius: 0; box-shadow: none; }
+        .screen.cinema-mode .player-meta { display: none; }
+        .screen.cinema-mode .progress-box {
+            position: absolute; bottom: 30px; left: 5%; width: 90%; z-index: 10;
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; backdrop-filter: blur(5px);
+            opacity: 0; transition: opacity 0.5s ease;
+        }
+        .screen.cinema-mode:hover .progress-box { opacity: 1; }
+        .screen.cinema-mode .track-bar { background: rgba(255,255,255,0.3); border: none; }
+        .screen.cinema-mode .track-fill { background: #fff; }
+        .screen.cinema-mode #time-cur, .screen.cinema-mode #time-total { color: #fff; text-shadow: 0 1px 2px #000; }
 
         /* 轮盘 */
         .click-wheel {
@@ -138,53 +182,55 @@
 <body>
 
 <div class="ipod">
-    <div class="screen">
-        <div class="status-bar">
-            <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
-            <span id="clock">12:00</span>
-            <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; font-size: 12px;" title="Add More">🔋 ➕</span>
-        </div>
-        
-        <div class="content-area">
-            <div id="import-view">
-                <input type="file" id="file-input" accept=".mp3,.wav,.flac,.mp4,audio/*,video/mp4" multiple style="display:none">
-                <button class="import-btn" onclick="hapticTap(20); document.getElementById('file-input').click()">Import Media (Audio/Video)</button>
-                <p style="font-size: 12px; color: #666; margin-top:10px;">MP3, WAV, FLAC, MP4 (Max 1000)</p>
-                <p id="loading-text" style="font-size: 12px; color: var(--apple-blue); font-weight:bold;"></p>
+    <div class="screen-wrapper">
+        <div class="screen" id="main-screen">
+            <div class="status-bar">
+                <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
+                <span id="clock">12:00</span>
+                <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; font-size: 12px;" title="Add More">🔋 ➕</span>
             </div>
-
-            <div id="list-view">
-                <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
-                    <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
+            
+            <div class="content-area">
+                <div id="import-view">
+                    <input type="file" id="file-input" accept=".mp3,.wav,.flac,.mp4,audio/*,video/mp4" multiple style="display:none">
+                    <button class="import-btn" onclick="hapticTap(20); document.getElementById('file-input').click()">Import Media (Audio/Video)</button>
+                    <p style="font-size: 12px; color: #666; margin-top:10px;">MP3, WAV, FLAC, MP4 (Max 1000)</p>
+                    <p id="loading-text" style="font-size: 12px; color: var(--apple-blue); font-weight:bold;"></p>
                 </div>
-                <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
-                    <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
-                </div>
-                <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
-            </div>
 
-            <div id="cover-flow-view">
-                <div class="cf-container" id="cf-container"></div>
-                <div class="album-info-overlay" id="cf-info">Artist - Title</div>
-            </div>
-
-            <div id="player-view">
-                <div class="player-header">
-                    <img src="" id="p-img" class="player-art">
-                    <video id="main-media" class="player-art" style="display:none;" playsinline></video>
-                    <div class="player-meta">
-                        <h3 id="p-title">Title</h3>
-                        <p id="p-artist">Artist</p>
-                        <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
+                <div id="list-view">
+                    <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
+                        <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
                     </div>
-                </div>
-                <div class="progress-box">
-                    <div class="track-bar" id="track-bar" onclick="hapticTap(10); seek(event)">
-                        <div class="track-fill" id="track-fill"></div>
+                    <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
+                        <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
-                        <span id="time-cur">0:00</span>
-                        <span id="time-total">0:00</span>
+                    <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
+                </div>
+
+                <div id="cover-flow-view">
+                    <div class="cf-container" id="cf-container"></div>
+                    <div class="album-info-overlay" id="cf-info">Artist - Title</div>
+                </div>
+
+                <div id="player-view">
+                    <div class="player-header">
+                        <img src="" id="p-img" class="player-art">
+                        <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
+                        <div class="player-meta">
+                            <h3 id="p-title">Title</h3>
+                            <p id="p-artist">Artist</p>
+                            <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
+                        </div>
+                    </div>
+                    <div class="progress-box">
+                        <div class="track-bar" id="track-bar" onclick="hapticTap(10); seek(event)">
+                            <div class="track-fill" id="track-fill"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
+                            <span id="time-cur">0:00</span>
+                            <span id="time-total">0:00</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -201,36 +247,24 @@
 </div>
 
 <script>
-    // --- 核心触觉反馈函数 ---
     function hapticTap(strength = 20) {
-        try {
-            if (navigator.vibrate) {
-                navigator.vibrate(strength);
-                return true;
-            }
-        } catch (e) {}
-        return false;
+        try { if (navigator.vibrate) { navigator.vibrate(strength); return true; } } catch (e) {} return false;
     }
 
     let playlist = [];
     let currentIndex = 0;
     let cfIndex = 0;
     let currentMode = 'import'; 
-    
     const media = document.getElementById('main-media');
+    const screenEl = document.getElementById('main-screen');
     
     const defaultAudioCover = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-family="sans-serif" font-size="40" fill="%23999" text-anchor="middle">🎵</text></svg>';
     const defaultVideoCover = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-family="sans-serif" font-size="40" fill="%23999" text-anchor="middle">🎬</text></svg>';
 
-    // 1. 本地文件追加读取与解析
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         const availableSlots = 1000 - playlist.length;
-        
-        if (availableSlots <= 0) {
-            alert("Maximum limit of 1000 items reached!");
-            return;
-        }
+        if (availableSlots <= 0) { alert("Maximum limit reached!"); return; }
 
         const filesToAdd = files.slice(0, availableSlots);
         if(filesToAdd.length === 0) return;
@@ -246,7 +280,6 @@
             const file = filesToAdd[i];
             const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4');
             const fileURL = URL.createObjectURL(file);
-            
             const extMatch = file.name.match(/\.([^.]+)$/);
             const ext = extMatch ? extMatch[1].toUpperCase() : 'AUDIO';
 
@@ -255,31 +288,26 @@
                 title: file.name.replace(/\.[^/.]+$/, ""), 
                 artist: isVideo ? 'Video/MTV' : 'Unknown Artist', 
                 cover: isVideo ? defaultVideoCover : defaultAudioCover, 
-                url: fileURL,
-                isVideo: isVideo,
-                typeLabel: isVideo ? 'MP4 Video' : `${ext} Audio`
+                url: fileURL, isVideo: isVideo, typeLabel: isVideo ? 'MP4 Video' : `${ext} Audio`
             };
 
             if (!isVideo) {
                 await new Promise((resolve) => {
                     jsmediatags.read(file, {
                         onSuccess: function(tag) {
-                            const tags = tag.tags;
-                            if(tags.title) trackInfo.title = tags.title;
-                            if(tags.artist) trackInfo.artist = tags.artist;
-                            if(tags.picture) {
-                                let base64String = "";
-                                const data = tags.picture.data;
-                                for (let j = 0; j < data.length; j++) base64String += String.fromCharCode(data[j]);
-                                trackInfo.cover = `data:${tags.picture.format};base64,${window.btoa(base64String)}`;
+                            if(tag.tags.title) trackInfo.title = tag.tags.title;
+                            if(tag.tags.artist) trackInfo.artist = tag.tags.artist;
+                            if(tag.tags.picture) {
+                                let b64 = ""; const data = tag.tags.picture.data;
+                                for(let j=0; j<data.length; j++) b64 += String.fromCharCode(data[j]);
+                                trackInfo.cover = `data:${tag.tags.picture.format};base64,${window.btoa(b64)}`;
                             }
                             resolve();
                         },
-                        onError: function(error) { resolve(); } 
+                        onError: function() { resolve(); } 
                     });
                 });
             }
-            
             playlist.push(trackInfo);
         }
 
@@ -288,17 +316,12 @@
         document.getElementById('song-count').innerText = playlist.length;
         
         initListView();
-        
-        if (currentMode === 'import') {
-            setTimeout(goHome, 500);
-        } else if (currentMode === 'cover-flow') {
-            renderCF();
-        }
+        if (currentMode === 'import') { setTimeout(goHome, 500); } 
+        else if (currentMode === 'cover-flow') { renderCF(); }
 
         e.target.value = '';
     });
 
-    // 2. 初始化列表并附加【左滑删除】逻辑
     function initListView() {
         const container = document.getElementById('song-list-container');
         container.innerHTML = '';
@@ -306,115 +329,52 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'menu-item-wrapper';
 
-            // 删除按钮（底层）
             const delBtn = document.createElement('div');
-            delBtn.className = 'delete-btn';
-            delBtn.innerText = 'Delete';
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                deleteSong(idx);
-            };
+            delBtn.className = 'delete-btn'; delBtn.innerText = 'Delete';
+            delBtn.onclick = (e) => { e.stopPropagation(); deleteSong(idx); };
 
-            // 内容区（上层，可滑动）
             const div = document.createElement('div');
-            div.className = 'menu-item';
-            div.style.fontSize = '12px';
+            div.className = 'menu-item'; div.style.fontSize = '12px';
             div.innerHTML = `<span>${s.isVideo ? '🎬' : '🎵'} ${s.title}</span>`;
 
-            // 滑动逻辑监听器
-            let startX = 0;
-            let isDragging = false;
-
-            const handleStart = (clientX) => {
-                startX = clientX;
-                isDragging = true;
-                div.style.transition = 'none'; // 滑动时取消动画，跟手
-            };
-
-            const handleMove = (clientX) => {
-                if (!isDragging) return;
-                let diff = clientX - startX;
-                // 只能向左滑，且最多滑出 70px (删除按钮的宽度)
-                if (diff < 0) {
-                    div.style.transform = `translateX(${Math.max(diff, -70)}px)`;
-                } else {
-                    div.style.transform = `translateX(0px)`;
+            let startX = 0; let isDragging = false;
+            const handleStart = (cx) => { startX = cx; isDragging = true; div.style.transition = 'none'; };
+            const handleMove = (cx) => { if(!isDragging) return; let d = cx - startX; if(d < 0) div.style.transform = `translateX(${Math.max(d, -70)}px)`; else div.style.transform = `translateX(0px)`; };
+            const handleEnd = (cx) => {
+                if(!isDragging) return; isDragging = false; div.style.transition = 'transform 0.2s ease';
+                let d = cx - startX;
+                if (d < -35) { div.style.transform = `translateX(-70px)`; hapticTap(15); } 
+                else { 
+                    div.style.transform = `translateX(0px)`; 
+                    if (Math.abs(d) < 5) { hapticTap(10); playSong(idx); }
                 }
             };
 
-            const handleEnd = (clientX) => {
-                if (!isDragging) return;
-                isDragging = false;
-                div.style.transition = 'transform 0.2s ease'; // 松手时加上动画
-                
-                let diff = clientX - startX;
-                if (diff < -35) {
-                    // 滑动超过一半，吸附打开删除按钮
-                    div.style.transform = `translateX(-70px)`;
-                    hapticTap(15);
-                } else {
-                    // 滑动不够，弹回原位
-                    div.style.transform = `translateX(0px)`;
-                    
-                    // 如果基本没有移动距离（绝对值 < 5px），判定为点击事件 -> 播放音乐
-                    if (Math.abs(diff) < 5) {
-                        hapticTap(10);
-                        playSong(idx);
-                    }
-                }
-            };
-
-            // 绑定 Touch 事件 (手机)
             div.addEventListener('touchstart', e => handleStart(e.touches[0].clientX), {passive: true});
             div.addEventListener('touchmove', e => handleMove(e.touches[0].clientX), {passive: true});
             div.addEventListener('touchend', e => handleEnd(e.changedTouches[0].clientX));
-
-            // 绑定 Mouse 事件 (电脑)
             div.addEventListener('mousedown', e => handleStart(e.clientX));
             div.addEventListener('mousemove', e => handleMove(e.clientX));
             div.addEventListener('mouseup', e => handleEnd(e.clientX));
             div.addEventListener('mouseleave', e => { if(isDragging) handleEnd(e.clientX); });
 
-            wrapper.appendChild(delBtn);
-            wrapper.appendChild(div);
-            container.appendChild(wrapper);
+            wrapper.appendChild(delBtn); wrapper.appendChild(div); container.appendChild(wrapper);
         });
     }
 
-    // 专门处理删除逻辑的函数
     function deleteSong(idx) {
-        hapticTap(30); // 强震动反馈删除动作
+        hapticTap(30);
         const wasPlaying = (currentIndex === idx && currentMode === 'player');
-        
-        // 从列表中移除
         playlist.splice(idx, 1);
         document.getElementById('song-count').innerText = playlist.length;
-        
-        // 调整游标以防止越界错乱
         if (currentIndex > idx) currentIndex--;
         if (cfIndex > idx) cfIndex--;
         if (cfIndex >= playlist.length) cfIndex = Math.max(0, playlist.length - 1);
         
-        // 如果删光了
-        if (playlist.length === 0) {
-            media.pause();
-            goHome();
-        } 
-        // 如果删掉的是正在播放的歌
-        else if (wasPlaying) {
-            media.pause();
-            goHome(); // 退回主界面
-        } 
-        // 重新渲染当前视图
-        else if (currentMode === 'cover-flow') {
-            renderCF();
-        }
-
-        // 重新渲染列表 UI
+        if (playlist.length === 0 || wasPlaying) { media.pause(); goHome(); } 
+        else if (currentMode === 'cover-flow') { renderCF(); }
         initListView();
     }
-
-    // --- 以下为原有的视图控制和播放逻辑 ---
 
     function hideAllViews() {
         document.getElementById('import-view').style.display = 'none';
@@ -426,6 +386,8 @@
     function goHome() {
         if(playlist.length === 0) return; 
         hideAllViews();
+        // 关键：退出时取消影院模式，屏幕将平滑缩小归位
+        screenEl.classList.remove('cinema-mode');
         document.getElementById('list-view').style.display = 'block';
         currentMode = 'list';
     }
@@ -438,6 +400,7 @@
     function showCoverFlow() {
         if(playlist.length === 0) return alert('Please add media first!');
         hideAllViews();
+        screenEl.classList.remove('cinema-mode');
         document.getElementById('cover-flow-view').style.display = 'flex';
         currentMode = 'cover-flow';
         renderCF();
@@ -448,13 +411,8 @@
         cfContainer.innerHTML = '';
         playlist.forEach((s, idx) => {
             const img = document.createElement('div');
-            img.className = 'album-card';
-            img.style.backgroundImage = `url("${s.cover}")`;
-            img.onclick = () => {
-                hapticTap(10); 
-                if(idx === cfIndex) playSong(idx);
-                else { cfIndex = idx; updateCFPositions(); }
-            };
+            img.className = 'album-card'; img.style.backgroundImage = `url("${s.cover}")`;
+            img.onclick = () => { hapticTap(10); if(idx === cfIndex) playSong(idx); else { cfIndex = idx; updateCFPositions(); } };
             cfContainer.appendChild(img);
         });
         updateCFPositions();
@@ -463,42 +421,28 @@
     function updateCFPositions() {
         const cards = document.querySelectorAll('.album-card');
         cards.forEach((card, idx) => {
-            let offset = idx - cfIndex;
-            let z = -Math.abs(offset) * 100;
-            let x = offset * 45;
-            let rotate = offset * -45;
-
-            if(offset === 0) {
-                z = 100; x = 0; rotate = 0;
-                card.style.opacity = "1";
-                document.getElementById('cf-info').innerText = `${playlist[idx].artist} - ${playlist[idx].title}`;
-            } else {
-                x += (offset > 0 ? 80 : -80);
-                card.style.opacity = Math.abs(offset) > 3 ? "0" : "0.7";
-            }
-            card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotate}deg)`;
-            card.style.zIndex = 100 - Math.abs(offset);
+            let offset = idx - cfIndex; let z = -Math.abs(offset) * 100; let x = offset * 45; let rotate = offset * -45;
+            if(offset === 0) { z = 100; x = 0; rotate = 0; card.style.opacity = "1"; document.getElementById('cf-info').innerText = `${playlist[idx].artist} - ${playlist[idx].title}`; } 
+            else { x += (offset > 0 ? 80 : -80); card.style.opacity = Math.abs(offset) > 3 ? "0" : "0.7"; }
+            card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotate}deg)`; card.style.zIndex = 100 - Math.abs(offset);
         });
     }
 
-    // Cover Flow 滑动支持
     let touchStartX = 0;
     document.getElementById('cover-flow-view').addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
     document.getElementById('cover-flow-view').addEventListener('touchend', e => {
         let diff = touchStartX - e.changedTouches[0].clientX;
         if(Math.abs(diff) > 30 && playlist.length > 0) {
             hapticTap(15); 
-            if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } 
-            else { cfIndex = Math.max(cfIndex - 1, 0); }
+            if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } else { cfIndex = Math.max(cfIndex - 1, 0); }
             updateCFPositions();
         }
     });
 
-    // 播放与媒体控制
+    // --- 修改了这里：智能判定 MP4 播放触发放大 ---
     function playSong(idx) {
         if(playlist.length === 0) return;
-        currentIndex = idx;
-        const s = playlist[idx];
+        currentIndex = idx; const s = playlist[idx];
         
         media.src = s.url;
         document.getElementById('p-title').innerText = s.title;
@@ -508,10 +452,14 @@
         if (s.isVideo) {
             document.getElementById('p-img').style.display = 'none';
             media.style.display = 'block';
+            // MP4触发：增加类名，利用 CSS 1.2s 慢动作渲染成为大屏幕
+            screenEl.classList.add('cinema-mode');
         } else {
             document.getElementById('p-img').style.display = 'block';
             document.getElementById('p-img').src = s.cover;
             media.style.display = 'none';
+            // 音乐触发：移除类名，平滑缩回 iPod 原始尺寸
+            screenEl.classList.remove('cinema-mode');
         }
         
         hideAllViews();
@@ -520,41 +468,24 @@
         media.play();
     }
 
-    function playPause() {
-        if(playlist.length === 0) return;
-        if(media.paused) media.play();
-        else media.pause();
-    }
+    function playPause() { if(playlist.length === 0) return; if(media.paused) media.play(); else media.pause(); }
 
     function nextSong() {
         if(playlist.length === 0) return;
-        if(currentMode === 'cover-flow') {
-            cfIndex = Math.min(cfIndex + 1, playlist.length - 1);
-            updateCFPositions();
-        } else {
-            currentIndex = (currentIndex + 1) % playlist.length;
-            playSong(currentIndex);
-        }
+        if(currentMode === 'cover-flow') { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); updateCFPositions(); } 
+        else { currentIndex = (currentIndex + 1) % playlist.length; playSong(currentIndex); }
     }
 
     function prevSong() {
         if(playlist.length === 0) return;
-        if(currentMode === 'cover-flow') {
-            cfIndex = Math.max(cfIndex - 1, 0);
-            updateCFPositions();
-        } else {
-            currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-            playSong(currentIndex);
-        }
+        if(currentMode === 'cover-flow') { cfIndex = Math.max(cfIndex - 1, 0); updateCFPositions(); } 
+        else { currentIndex = (currentIndex - 1 + playlist.length) % playlist.length; playSong(currentIndex); }
     }
 
-    function handleCenterClick() {
-        if(currentMode === 'cover-flow') playSong(cfIndex);
-    }
+    function handleCenterClick() { if(currentMode === 'cover-flow') playSong(cfIndex); }
 
     function seek(e) {
-        const bar = document.getElementById('track-bar');
-        const per = e.offsetX / bar.offsetWidth;
+        const bar = document.getElementById('track-bar'); const per = e.offsetX / bar.offsetWidth;
         media.currentTime = per * media.duration;
     }
 
@@ -568,9 +499,7 @@
     media.onended = () => nextSong(); 
 
     function formatTime(sec) {
-        if(isNaN(sec)) return "0:00";
-        let m = Math.floor(sec/60);
-        let s = Math.floor(sec%60);
+        if(isNaN(sec)) return "0:00"; let m = Math.floor(sec/60); let s = Math.floor(sec%60);
         return `${m}:${s<10?'0':''}${s}`;
     }
 
