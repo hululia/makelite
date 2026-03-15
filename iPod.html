@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPod Classic - Nostalgic Video Edition</title>
+    <title>iPod Classic - True Vintage Video Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
@@ -27,13 +27,12 @@
             border: 1px solid #999;
         }
 
-        /* 恢复原汁原味的固定屏幕尺寸 */
+        /* 固定的 300x215 屏幕，永不越界 */
         .screen {
             width: 300px; height: 215px; background-color: #000;
             border: 3px solid #222; border-radius: 6px; overflow: hidden;
             position: relative; display: flex; flex-direction: column;
             margin-top: 2px;
-            transition: background 0.3s ease;
         }
 
         .status-bar {
@@ -41,113 +40,103 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 8px; font-size: 11px; font-weight: bold; color: #333;
             border-bottom: 1px solid #666; z-index: 100; flex-shrink: 0;
-            transition: all 0.3s ease;
+            transition: all 0.8s ease;
         }
 
-        /* 播放视频时，状态栏变成半透明暗色系，不抢戏 */
-        .screen.cinema-mode .status-bar {
-            background: rgba(0,0,0,0.8);
-            color: #ccc;
-            border-bottom: 1px solid #222;
+        /* 影院模式下状态栏变暗 */
+        .screen.cinema-expand .status-bar {
+            background: rgba(0,0,0,0.85); color: #ccc; border-bottom: 1px solid #111;
         }
 
-        .content-area { flex: 1; background: #fff; position: relative; overflow: hidden; transition: background 0.3s ease; }
-        
-        /* 播放视频时，内容区纯黑，完美融合黑边 */
-        .screen.cinema-mode .content-area { background: #000; }
+        /* 整个屏幕背景在影院模式下变黑 */
+        .content-area { 
+            flex: 1; background: #fff; position: relative; overflow: hidden; 
+            transition: background 1.2s ease; 
+        }
+        .screen.cinema-expand .content-area { background: #000; }
 
-        /* 导入界面 */
-        #import-view {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; text-align: center; padding: 20px; box-sizing: border-box;
-        }
-        .import-btn {
-            background: var(--apple-blue); color: white; border: none;
-            padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer;
-            margin-bottom: 10px; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        /* --- 其他基础 UI --- */
+        #import-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 20px; box-sizing: border-box; }
+        .import-btn { background: var(--apple-blue); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .import-btn:active { background: #0056b3; }
-
-        /* 列表视图与左滑删除 UI */
+        
         #list-view { width: 100%; height: 100%; display: none; }
         .menu-item-wrapper { position: relative; overflow: hidden; background: #fff; border-bottom: 1px solid #eee; }
-        .delete-btn {
-            position: absolute; right: 0; top: 0; bottom: 0; width: 70px;
-            background-color: var(--apple-red); color: white; display: flex;
-            align-items: center; justify-content: center; font-weight: bold; font-size: 13px; cursor: pointer; z-index: 1;
-        }
-        .menu-item {
-            padding: 10px 12px; font-size: 14px; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
-            background: #fff; position: relative; z-index: 2; cursor: pointer;
-        }
+        .delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 70px; background-color: var(--apple-red); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; cursor: pointer; z-index: 1; }
+        .menu-item { padding: 10px 12px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; background: #fff; position: relative; z-index: 2; cursor: pointer; }
         .menu-item:active { background: #f0f0f5; }
 
-        /* Cover Flow */
         #cover-flow-view { width: 100%; height: 100%; background: #000; display: none; perspective: 800px; overflow: hidden; }
         .cf-container { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; }
-        .album-card {
-            position: absolute; width: 110px; height: 110px;
-            background-size: cover; background-position: center; background-color: #333;
-            transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); cursor: pointer;
-            -webkit-box-reflect: below 2px linear-gradient(transparent, transparent 60%, rgba(255, 255, 255, 0.2));
-            border-radius: 4px; border: 1px solid #222;
-        }
-        .album-info-overlay {
-            position: absolute; bottom: 10px; width: 100%; text-align: center; color: white;
-            font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; box-sizing: border-box;
-        }
+        .album-card { position: absolute; width: 110px; height: 110px; background-size: cover; background-position: center; background-color: #333; transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); cursor: pointer; -webkit-box-reflect: below 2px linear-gradient(transparent, transparent 60%, rgba(255, 255, 255, 0.2)); border-radius: 4px; border: 1px solid #222; }
+        .album-info-overlay { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; box-sizing: border-box; }
 
-        /* 播放界面 */
+        /* ========================================= */
+        /* 🌟 核心重构：绝对定位的播放界面 (为了动画铺垫) */
+        /* ========================================= */
         #player-view {
-            width: 100%; height: 100%; display: none; flex-direction: column;
-            padding: 15px; box-sizing: border-box; background: #fff;
+            width: 100%; height: 100%; display: none; position: relative;
+            background: transparent;
         }
-        .player-header { display: flex; gap: 15px; }
         
+        /* 封面和视频元素的初始形态：100x100 左上角 */
         .player-art { 
-            width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-            object-fit: cover; background: #000; flex-shrink: 0;
+            position: absolute; top: 15px; left: 15px;
+            width: 100px; height: 100px; border-radius: 4px; 
+            object-fit: cover; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+            /* 灵魂缓动函数：让放大带有 Apple 般的物理重量感 */
+            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 5;
         }
 
-        .player-meta { width: 140px; overflow: hidden; }
-        .player-meta h3 { margin: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player-meta { 
+            position: absolute; top: 15px; left: 130px; /* 15 + 100 + 15 */
+            width: 155px; overflow: hidden; 
+            transition: all 0.6s ease;
+        }
+        .player-meta h3 { margin: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #111; }
         .player-meta p { margin: 5px 0; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .progress-box { margin-top: 30px; }
+        
+        .progress-box { 
+            position: absolute; bottom: 25px; left: 15px; width: 270px;
+            transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 10;
+        }
         .track-bar { width: 100%; height: 18px; background: #eee; border: 1px solid #ccc; position: relative; cursor: pointer; }
         .track-fill { height: 100%; background: var(--apple-blue); width: 0%; pointer-events: none;}
+        .time-labels { display:flex; justify-content:space-between; font-size:10px; margin-top:5px; color:#333; }
 
-        /* 🌟 怀旧影院模式：在 iPod 屏幕内部全屏显示，带有经典的悬浮控制条 */
-        .screen.cinema-mode #player-view { padding: 0; justify-content: center; }
-        .screen.cinema-mode .player-header { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; gap: 0; }
-        .screen.cinema-mode .player-art { width: 100%; height: 100%; object-fit: contain; border-radius: 0; box-shadow: none; }
-        .screen.cinema-mode .player-meta { display: none; }
-        .screen.cinema-mode .progress-box {
-            position: absolute; bottom: 10px; left: 5%; width: 90%; z-index: 10;
-            background: rgba(0,0,0,0.6); padding: 5px 8px; border-radius: 6px; 
-            opacity: 0; transition: opacity 0.3s ease; box-sizing: border-box;
+        /* ========================================= */
+        /* 🎬 影院模式激活状态 (仅通过添加类名触发) */
+        /* ========================================= */
+        /* 1. 视频慢动作铺满屏幕，自动信箱模式 (Letterbox) */
+        .screen.cinema-expand .player-art {
+            top: 0; left: 0; width: 300px; height: 193px; /* 215 - 22状态栏 */
+            border-radius: 0; object-fit: contain; box-shadow: none;
         }
-        .screen.cinema-mode:hover .progress-box { opacity: 1; }
-        .screen.cinema-mode .track-bar { background: rgba(255,255,255,0.3); border: none; height: 10px; border-radius: 5px; overflow: hidden; }
-        .screen.cinema-mode .track-fill { background: #fff; }
-        .screen.cinema-mode #time-cur, .screen.cinema-mode #time-total { color: #fff; text-shadow: 0 1px 2px #000; margin-top: 2px;}
+        /* 2. 文字往右平移并消失 */
+        .screen.cinema-expand .player-meta {
+            opacity: 0; transform: translateX(30px); pointer-events: none;
+        }
+        /* 3. 进度条下沉并变成透明悬浮态 */
+        .screen.cinema-expand .progress-box {
+            bottom: 5px; left: 15px; width: 270px;
+            background: rgba(0,0,0,0.7); padding: 5px 8px; border-radius: 6px; box-sizing: border-box;
+            opacity: 0; /* 默认隐藏，触摸/悬浮显示 */
+        }
+        .screen.cinema-expand:hover .progress-box { opacity: 1; }
+        .screen.cinema-expand .track-bar { background: rgba(255,255,255,0.3); border: none; height: 10px; border-radius: 5px; overflow: hidden; }
+        .screen.cinema-expand .track-fill { background: #fff; }
+        .screen.cinema-expand .time-labels { color: #fff; text-shadow: 0 1px 2px #000; margin-top: 2px; }
 
-        /* 轮盘 */
-        .click-wheel {
-            width: 210px; height: 210px; background-color: #fff; border-radius: 50%;
-            margin-top: 35px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: pointer;
-        }
+        /* --- 轮盘 --- */
+        .click-wheel { width: 210px; height: 210px; background-color: #fff; border-radius: 50%; margin-top: 35px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.1); cursor: pointer; }
         .wheel-btn { position: absolute; font-size: 13px; font-weight: bold; color: #999; }
         .btn-menu { top: 15px; left: 50%; transform: translateX(-50%); }
         .btn-next { right: 15px; top: 50%; transform: translateY(-50%); }
         .btn-prev { left: 15px; top: 50%; transform: translateY(-50%); }
         .btn-play { bottom: 15px; left: 50%; transform: translateX(-50%); }
-        .center-select {
-            width: 75px; height: 75px; background: linear-gradient(135deg, #eee, #ccc);
-            border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: inset 0 1px 3px white, 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .center-select { width: 75px; height: 75px; background: linear-gradient(135deg, #eee, #ccc); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: inset 0 1px 3px white, 0 2px 5px rgba(0,0,0,0.2); }
         .center-select:active { background: #bbb; }
     </style>
 </head>
@@ -158,7 +147,10 @@
         <div class="status-bar">
             <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
             <span id="clock">12:00</span>
-            <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; font-size: 12px;" title="Add More">🔋 ➕</span>
+            <span>
+                <span id="battery-display">100% 🔋</span>
+                <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; margin-left:6px;" title="Add More">➕</span>
+            </span>
         </div>
         
         <div class="content-area">
@@ -170,12 +162,8 @@
             </div>
 
             <div id="list-view">
-                <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
-                    <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
-                </div>
-                <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
-                    <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
-                </div>
+                <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()"><div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div></div>
+                <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()"><div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div></div>
                 <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
             </div>
 
@@ -185,20 +173,20 @@
             </div>
 
             <div id="player-view">
-                <div class="player-header">
-                    <img src="" id="p-img" class="player-art">
-                    <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
-                    <div class="player-meta">
-                        <h3 id="p-title">Title</h3>
-                        <p id="p-artist">Artist</p>
-                        <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
-                    </div>
+                <img src="" id="p-img" class="player-art">
+                <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
+                
+                <div class="player-meta">
+                    <h3 id="p-title">Title</h3>
+                    <p id="p-artist">Artist</p>
+                    <p id="p-type" style="font-size:10px; color:#999">Local Media</p>
                 </div>
+                
                 <div class="progress-box">
                     <div class="track-bar" id="track-bar" onclick="hapticTap(10); seek(event)">
                         <div class="track-fill" id="track-fill"></div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
+                    <div class="time-labels">
                         <span id="time-cur">0:00</span>
                         <span id="time-total">0:00</span>
                     </div>
@@ -221,6 +209,27 @@
         try { if (navigator.vibrate) { navigator.vibrate(strength); return true; } } catch (e) {} return false;
     }
 
+    // --- 真实电量获取逻辑 ---
+    function initBattery() {
+        const batDisplay = document.getElementById('battery-display');
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(bat => {
+                const updateBat = () => {
+                    const level = Math.round(bat.level * 100);
+                    const icon = bat.charging ? '⚡' : '🔋';
+                    batDisplay.innerText = `${level}% ${icon}`;
+                };
+                updateBat();
+                bat.addEventListener('levelchange', updateBat);
+                bat.addEventListener('chargingchange', updateBat);
+            });
+        } else {
+            // iOS Safari 降级显示
+            batDisplay.innerText = '100% 🔋';
+        }
+    }
+    initBattery();
+
     let playlist = [];
     let currentIndex = 0;
     let cfIndex = 0;
@@ -234,17 +243,12 @@
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         const availableSlots = 1000 - playlist.length;
-        if (availableSlots <= 0) { alert("Maximum limit reached!"); return; }
+        if (availableSlots <= 0) return;
 
         const filesToAdd = files.slice(0, availableSlots);
         if(filesToAdd.length === 0) return;
 
-        const loadingText = document.getElementById('loading-text');
-        const clockElem = document.getElementById('clock');
-        const originalClock = clockElem.innerText;
-        
-        if (currentMode === 'import') loadingText.innerText = `Loading...`;
-        clockElem.innerText = "Load..."; 
+        document.getElementById('clock').innerText = "Load..."; 
         
         for (let i = 0; i < filesToAdd.length; i++) {
             const file = filesToAdd[i];
@@ -254,10 +258,8 @@
             const ext = extMatch ? extMatch[1].toUpperCase() : 'AUDIO';
 
             let trackInfo = { 
-                id: playlist.length, 
-                title: file.name.replace(/\.[^/.]+$/, ""), 
-                artist: isVideo ? 'Video/MTV' : 'Unknown Artist', 
-                cover: isVideo ? defaultVideoCover : defaultAudioCover, 
+                id: playlist.length, title: file.name.replace(/\.[^/.]+$/, ""), 
+                artist: isVideo ? 'Video/MTV' : 'Unknown Artist', cover: isVideo ? defaultVideoCover : defaultAudioCover, 
                 url: fileURL, isVideo: isVideo, typeLabel: isVideo ? 'MP4 Video' : `${ext} Audio`
             };
 
@@ -281,14 +283,10 @@
             playlist.push(trackInfo);
         }
 
-        clockElem.innerText = originalClock;
-        if (currentMode === 'import') loadingText.innerText = "Done!";
         document.getElementById('song-count').innerText = playlist.length;
-        
         initListView();
         if (currentMode === 'import') { setTimeout(goHome, 500); } 
         else if (currentMode === 'cover-flow') { renderCF(); }
-
         e.target.value = '';
     });
 
@@ -296,15 +294,11 @@
         const container = document.getElementById('song-list-container');
         container.innerHTML = '';
         playlist.forEach((s, idx) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'menu-item-wrapper';
-
-            const delBtn = document.createElement('div');
-            delBtn.className = 'delete-btn'; delBtn.innerText = 'Delete';
+            const wrapper = document.createElement('div'); wrapper.className = 'menu-item-wrapper';
+            const delBtn = document.createElement('div'); delBtn.className = 'delete-btn'; delBtn.innerText = 'Delete';
             delBtn.onclick = (e) => { e.stopPropagation(); deleteSong(idx); };
 
-            const div = document.createElement('div');
-            div.className = 'menu-item'; div.style.fontSize = '12px';
+            const div = document.createElement('div'); div.className = 'menu-item'; div.style.fontSize = '12px';
             div.innerHTML = `<span>${s.isVideo ? '🎬' : '🎵'} ${s.title}</span>`;
 
             let startX = 0; let isDragging = false;
@@ -314,10 +308,7 @@
                 if(!isDragging) return; isDragging = false; div.style.transition = 'transform 0.2s ease';
                 let d = cx - startX;
                 if (d < -35) { div.style.transform = `translateX(-70px)`; hapticTap(15); } 
-                else { 
-                    div.style.transform = `translateX(0px)`; 
-                    if (Math.abs(d) < 5) { hapticTap(10); playSong(idx); }
-                }
+                else { div.style.transform = `translateX(0px)`; if (Math.abs(d) < 5) { hapticTap(10); playSong(idx); } }
             };
 
             div.addEventListener('touchstart', e => handleStart(e.touches[0].clientX), {passive: true});
@@ -333,16 +324,11 @@
     }
 
     function deleteSong(idx) {
-        hapticTap(30);
-        const wasPlaying = (currentIndex === idx && currentMode === 'player');
-        playlist.splice(idx, 1);
-        document.getElementById('song-count').innerText = playlist.length;
-        if (currentIndex > idx) currentIndex--;
-        if (cfIndex > idx) cfIndex--;
+        hapticTap(30); const wasPlaying = (currentIndex === idx && currentMode === 'player');
+        playlist.splice(idx, 1); document.getElementById('song-count').innerText = playlist.length;
+        if (currentIndex > idx) currentIndex--; if (cfIndex > idx) cfIndex--;
         if (cfIndex >= playlist.length) cfIndex = Math.max(0, playlist.length - 1);
-        
-        if (playlist.length === 0 || wasPlaying) { media.pause(); goHome(); } 
-        else if (currentMode === 'cover-flow') { renderCF(); }
+        if (playlist.length === 0 || wasPlaying) { media.pause(); goHome(); } else if (currentMode === 'cover-flow') { renderCF(); }
         initListView();
     }
 
@@ -356,7 +342,7 @@
     function goHome() {
         if(playlist.length === 0) return; 
         hideAllViews();
-        screenEl.classList.remove('cinema-mode');
+        screenEl.classList.remove('cinema-expand'); // 退出时取消放大，平滑缩回
         document.getElementById('list-view').style.display = 'block';
         currentMode = 'list';
     }
@@ -369,18 +355,16 @@
     function showCoverFlow() {
         if(playlist.length === 0) return alert('Please add media first!');
         hideAllViews();
-        screenEl.classList.remove('cinema-mode');
+        screenEl.classList.remove('cinema-expand');
         document.getElementById('cover-flow-view').style.display = 'flex';
         currentMode = 'cover-flow';
         renderCF();
     }
 
     function renderCF() {
-        const cfContainer = document.getElementById('cf-container');
-        cfContainer.innerHTML = '';
+        const cfContainer = document.getElementById('cf-container'); cfContainer.innerHTML = '';
         playlist.forEach((s, idx) => {
-            const img = document.createElement('div');
-            img.className = 'album-card'; img.style.backgroundImage = `url("${s.cover}")`;
+            const img = document.createElement('div'); img.className = 'album-card'; img.style.backgroundImage = `url("${s.cover}")`;
             img.onclick = () => { hapticTap(10); if(idx === cfIndex) playSong(idx); else { cfIndex = idx; updateCFPositions(); } };
             cfContainer.appendChild(img);
         });
@@ -401,14 +385,10 @@
     document.getElementById('cover-flow-view').addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
     document.getElementById('cover-flow-view').addEventListener('touchend', e => {
         let diff = touchStartX - e.changedTouches[0].clientX;
-        if(Math.abs(diff) > 30 && playlist.length > 0) {
-            hapticTap(15); 
-            if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } else { cfIndex = Math.max(cfIndex - 1, 0); }
-            updateCFPositions();
-        }
+        if(Math.abs(diff) > 30 && playlist.length > 0) { hapticTap(15); if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } else { cfIndex = Math.max(cfIndex - 1, 0); } updateCFPositions(); }
     });
 
-    // --- 内部影院模式切换逻辑 ---
+    // --- 🌟 核心播放逻辑：触发慢动作扩张 ---
     function playSong(idx) {
         if(playlist.length === 0) return;
         currentIndex = idx; const s = playlist[idx];
@@ -418,20 +398,25 @@
         document.getElementById('p-artist').innerText = s.artist;
         document.getElementById('p-type').innerText = s.typeLabel; 
         
+        screenEl.classList.remove('cinema-expand'); // 每次切歌先复位
+
         if (s.isVideo) {
             document.getElementById('p-img').style.display = 'none';
             media.style.display = 'block';
-            // 添加类名，在内部重排版成纯黑背景 + 全屏视频
-            screenEl.classList.add('cinema-mode');
+            
+            // 魔法延迟：让浏览器先渲染 100x100 的小方块，再在一瞬间加上 expand 类触发动画
+            setTimeout(() => {
+                screenEl.classList.add('cinema-expand');
+            }, 50);
+            
         } else {
             document.getElementById('p-img').style.display = 'block';
             document.getElementById('p-img').src = s.cover;
             media.style.display = 'none';
-            screenEl.classList.remove('cinema-mode');
         }
         
         hideAllViews();
-        document.getElementById('player-view').style.display = 'flex';
+        document.getElementById('player-view').style.display = 'block'; // 注意这里改成了 block，依赖子元素的 absolute 定位
         currentMode = 'player';
         media.play();
     }
@@ -451,11 +436,7 @@
     }
 
     function handleCenterClick() { if(currentMode === 'cover-flow') playSong(cfIndex); }
-
-    function seek(e) {
-        const bar = document.getElementById('track-bar'); const per = e.offsetX / bar.offsetWidth;
-        media.currentTime = per * media.duration;
-    }
+    function seek(e) { const bar = document.getElementById('track-bar'); const per = e.offsetX / bar.offsetWidth; media.currentTime = per * media.duration; }
 
     media.ontimeupdate = () => {
         const per = (media.currentTime / media.duration) * 100;
@@ -465,15 +446,10 @@
     };
 
     media.onended = () => nextSong(); 
-
-    function formatTime(sec) {
-        if(isNaN(sec)) return "0:00"; let m = Math.floor(sec/60); let s = Math.floor(sec%60);
-        return `${m}:${s<10?'0':''}${s}`;
-    }
+    function formatTime(sec) { if(isNaN(sec)) return "0:00"; let m = Math.floor(sec/60); let s = Math.floor(sec%60); return `${m}:${s<10?'0':''}${s}`; }
 
     setInterval(() => {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.getHours() + ":" + (now.getMinutes()<10?'0':'') + now.getMinutes();
+        const now = new Date(); document.getElementById('clock').innerText = now.getHours() + ":" + (now.getMinutes()<10?'0':'') + now.getMinutes();
     }, 1000);
 
 </script>
