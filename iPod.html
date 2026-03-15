@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPod Classic - Local MP3 Edition</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <style>
+    :root {
+      --ipod-bg: linear-gradient(135deg, #e0e0e0 0%, #b0b0b0 100%);
+      --screen-bg: #f5f5f7;
+      --apple-blue: #007aff;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: -apple-system, "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .ipod {
+      width: 320px;
+      height: 520px;
+      background: var(--ipod-bg);
+      border-radius: 38px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 2px 5px rgba(255, 255, 255, 0.8);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid #999;
+    }
+
+    .screen {
+      width: 285px;
+      height: 215px;
+      background-color: #000;
+      border: 3px solid #222;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      height: 22px;
+      background: linear-gradient(to bottom, #eee, #bbb);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 1px solid #666;
+      z-index: 100;
+    }
+
+    .content-area {
+      flex: 1;
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 导入/加载界面 */
+    #import-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .import-btn {
+      background: var(--apple-blue);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .import-btn:active {
+      background: #0056b3;
+    }
+
+    /* 列表视图 */
+    #list-view {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    .menu-item {
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .menu-item:active {
+      background: var(--apple-blue);
+      color: white;
+    }
+
+    /* Cover Flow */
+    #cover-flow-view {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      perspective: 800px;
+      overflow: hidden;
+    }
+
+    .cf-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .album-card {
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      background-size: cover;
+      background-position: center;
+      background-color: #333;
+      transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+      cursor: pointer;
+      -webkit-box-reflect: below 2px
+        linear-gradient(transparent, transparent 60%, rgba(255, 255, 255, 0.2));
+      border-radius: 4px;
+      border: 1px solid #222;
+    }
+
+    .album-info-overlay {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-size: 12px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    /* 播放界面 */
+    #player-view {
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      padding: 15px;
+      box-sizing: border-box;
+      background: #fff;
+    }
+
+    .player-header {
+      display: flex;
+      gap: 15px;
+    }
+
+    .player-art {
+      width: 100px;
+      height: 100px;
+      border-radius: 4px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      object-fit: cover;
+      background: #333;
+    }
+
+    .player-meta {
+      width: 130px;
+      overflow: hidden;
+    }
+
+    .player-meta h3 {
+      margin: 0;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-meta p {
+      margin: 5px 0;
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .progress-box {
+      margin-top: 30px;
+    }
+
+    .track-bar {
+      width: 100%;
+      height: 18px;
+      background: #eee;
+      border: 1px solid #ccc;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .track-fill {
+      height: 100%;
+      background: var(--apple-blue);
+      width: 0%;
+      pointer-events: none;
+    }
+
+    /* 轮盘 */
+    .click-wheel {
+      width: 210px;
+      height: 210px;
+      background-color: #fff;
+      border-radius: 50%;
+      margin-top: 35px;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+    }
+
+    .wheel-btn {
+      position: absolute;
+      font-size: 13px;
+      font-weight: bold;
+      color: #999;
+    }
+
+    .btn-menu {
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .btn-next {
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .btn-prev {
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .btn-play {
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .center-select {
+      width: 75px;
+      height: 75px;
+      background: linear-gradient(135deg, #eee, #ccc);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: inset 0 1px 3px white, 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .center-select:active {
+      background: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <div class="ipod">
+    <div class="screen">
+      <div class="status-bar">
+        <span id="back-btn" onclick="goHome()" style="cursor:pointer">iPod</span>
+        <span id="clock">12:00</span>
+        <span>🔋</span>
+      </div>
+
+      <div class="content-area">
+        <div id="import-view">
+          <input type="file" id="file-input" accept="audio/mp3, audio/mpeg" multiple style="display:none" />
+          <button class="import-btn" onclick="document.getElementById('file-input').click()">Import Local MP3s</button>
+          <p style="font-size: 12px; color: #666; margin-top:10px;">Max 100 songs.</p>
+          <p id="loading-text" style="font-size: 12px; color: var(--apple-blue); font-weight:bold;"></p>
+        </div>
+
+        <div id="list-view">
+          <div class="menu-item" onclick="showCoverFlow()"><span>Cover Flow</span><span>&gt;</span></div>
+          <div class="menu-item" onclick="toggleSongList()"><span>Local Songs (<span id="song-count">0</span>)</span><span>&gt;</span></div>
+          <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
+        </div>
+
+        <div id="cover-flow-view">
+          <div class="cf-container" id="cf-container"></div>
+          <div class="album-info-overlay" id="cf-info">Artist - Title</div>
+        </div>
+
+        <div id="player-view">
+          <div class="player-header">
+            <img src="" id="p-img" class="player-art" />
+            <div class="player-meta">
+              <h3 id="p-title">Title</h3>
+              <p id="p-artist">Artist</p>
+              <p style="font-size:10px; color:#999">Local iPod Classic</p>
+            </div>
+          </div>
+          <div class="progress-box">
+            <div class="track-bar" id="track-bar" onclick="seek(event)">
+              <div class="track-fill" id="track-fill"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:5px;">
+              <span id="time-cur">0:00</span>
+              <span id="time-total">0:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="click-wheel">
+      <div class="wheel-btn btn-menu" onclick="goHome()">MENU</div>
+      <div class="wheel-btn btn-next" onclick="nextSong()">▶▶|</div>
+      <div class="wheel-btn btn-prev" onclick="prevSong()">|◀◀</div>
+      <div class="wheel-btn btn-play" onclick="playPause()">▶||</div>
+      <div class="center-select" onclick="handleCenterClick()"></div>
+    </div>
+  </div>
+
+  <audio id="main-audio"></audio>
+
+  <script>
+    let playlist = [];
+    let currentIndex = 0;
+    let cfIndex = 0;
+    let currentMode = 'import';
+
+    const audio = document.getElementById('main-audio');
+    const defaultCover = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-family="sans-serif" font-size="40" fill="%23999" text-anchor="middle">🎵</text></svg>';
+
+    // 1. 本地文件读取与解析
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files).slice(0, 100); // 限制最多 100 首
+      if (files.length === 0) return;
+
+      playlist = []; // 清空旧列表
+      const loadingText = document.getElementById('loading-text');
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        loadingText.innerText = `Loading... ${i + 1}/${files.length}`;
+
+        // 创建本地播放 URL
+        const fileURL = URL.createObjectURL(file);
+        let trackInfo = {
+          id: i,
+          title: file.name.replace('.mp3', ''),
+          artist: 'Unknown Artist',
+          cover: defaultCover,
+          url: fileURL,
+        };
+
+        // 使用 jsmediatags 解析 ID3 (如果存在)
+        await new Promise((resolve) => {
+          jsmediatags.read(file, {
+            onSuccess: function (tag) {
+              const tags = tag.tags;
+              if (tags.title) trackInfo.title = tags.title;
+              if (tags.artist) trackInfo.artist = tags.artist;
+              if (tags.picture) {
+                // 将 ArrayBuffer 转换为 Base64 图片以供网页显示
+                let base64String = '';
+                const data = tags.picture.data;
+                for (let j = 0; j < data.length; j++) {
+                  base64String += String.fromCharCode(data[j]);
+                }
+                trackInfo.cover = `data:${tags.picture.format};base64,${window.btoa(base64String)}`;
+              }
+              resolve();
+            },
+            onError: function () {
+              resolve();
+            }, // 解析失败也继续
+          });
+        });
+
+        playlist.push(trackInfo);
+      }
+
+      loadingText.innerText = 'Done!';
+      document.getElementById('song-count').innerText = playlist.length;
+      setTimeout(() => {
+        initListView();
+        goHome();
+      }, 500);
+    });
+
+    // 2. 初始化列表
+    function initListView() {
+      const container = document.getElementById('song-list-container');
+      container.innerHTML = '';
+      playlist.forEach((s, idx) => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.style.fontSize = '12px';
+        div.innerHTML = `<span>${s.title}</span>`;
+        div.onclick = () => playSong(idx);
+        container.appendChild(div);
+      });
+    }
+
+    // 3. 视图导航控制
+    function hideAllViews() {
+      document.getElementById('import-view').style.display = 'none';
+      document.getElementById('list-view').style.display = 'none';
+      document.getElementById('cover-flow-view').style.display = 'none';
+      document.getElementById('player-view').style.display = 'none';
+      document.getElementById('song-list-container').style.display = 'none';
+    }
+
+    function goHome() {
+      if (playlist.length === 0) return; // 没歌不让进菜单
+      hideAllViews();
+      document.getElementById('list-view').style.display = 'block';
+      currentMode = 'list';
+    }
+
+    function toggleSongList() {
+      const container = document.getElementById('song-list-container');
+      container.style.display = container.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // 4. Cover Flow 逻辑
+    function showCoverFlow() {
+      if (playlist.length === 0) return alert('Please import songs first!');
+      hideAllViews();
+      document.getElementById('cover-flow-view').style.display = 'flex';
+      currentMode = 'cover-flow';
+      renderCF();
+    }
+
+    function renderCF() {
+      const cfContainer = document.getElementById('cf-container');
+      cfContainer.innerHTML = '';
+      playlist.forEach((s, idx) => {
+        const img = document.createElement('div');
+        img.className = 'album-card';
+        img.style.backgroundImage = `url("${s.cover}")`;
+        img.onclick = () => {
+          if (idx === cfIndex) playSong(idx);
+          else {
+            cfIndex = idx;
+            updateCFPositions();
+          }
+        };
+        cfContainer.appendChild(img);
+      });
+      updateCFPositions();
+    }
+
+    function updateCFPositions() {
+      const cards = document.querySelectorAll('.album-card');
+      cards.forEach((card, idx) => {
+        let offset = idx - cfIndex;
+        let z = -Math.abs(offset) * 100;
+        let x = offset * 45;
+        let rotate = offset * -45;
+
+        if (offset === 0) {
+          z = 100;
+          x = 0;
+          rotate = 0;
+          card.style.opacity = '1';
+          document.getElementById('cf-info').innerText = `${playlist[idx].artist} - ${playlist[idx].title}`;
+        } else {
+          x += offset > 0 ? 80 : -80;
+          card.style.opacity = Math.abs(offset) > 3 ? '0' : '0.7';
+        }
+
+        card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotate}deg)`;
+        card.style.zIndex = 100 - Math.abs(offset);
+      });
+    }
+
+    // 滑动支持 Cover flow
+    let touchStartX = 0;
+    document.getElementById('cover-flow-view').addEventListener('touchstart', (e) => (touchStartX = e.touches[0].clientX));
+    document.getElementById('cover-flow-view').addEventListener('touchend', (e) => {
+      let diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 30) {
+        if (diff > 0) {
+          cfIndex = Math.min(cfIndex + 1, playlist.length - 1);
+        } else {
+          cfIndex = Math.max(cfIndex - 1, 0);
+        }
+        updateCFPositions();
+      }
+    });
+
+    // 5. 播放与音乐控制
+    function playSong(idx) {
+      if (playlist.length === 0) return;
+      currentIndex = idx;
+      const s = playlist[idx];
+      audio.src = s.url;
+      document.getElementById('p-img').src = s.cover;
+      document.getElementById('p-title').innerText = s.title;
+      document.getElementById('p-artist').innerText = s.artist;
+
+      hideAllViews();
+      document.getElementById('player-view').style.display = 'flex';
+      currentMode = 'player';
+      audio.play();
+    }
+
+    function playPause() {
+      if (playlist.length === 0) return;
+      if (audio.paused) audio.play();
+      else audio.pause();
+    }
+
+    function nextSong() {
+      if (playlist.length === 0) return;
+      if (currentMode === 'cover-flow') {
+        cfIndex = Math.min(cfIndex + 1, playlist.length - 1);
+        updateCFPositions();
+      } else {
+        currentIndex = (currentIndex + 1) % playlist.length;
+        playSong(currentIndex);
+      }
+    }
+
+    function prevSong() {
+      if (playlist.length === 0) return;
+      if (currentMode === 'cover-flow') {
+        cfIndex = Math.max(cfIndex - 1, 0);
+        updateCFPositions();
+      } else {
+        currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+        playSong(currentIndex);
+      }
+    }
+
+    function handleCenterClick() {
+      if (currentMode === 'cover-flow') playSong(cfIndex);
+    }
+
+    function seek(e) {
+      const bar = document.getElementById('track-bar');
+      const per = e.offsetX / bar.offsetWidth;
+      audio.currentTime = per * audio.duration;
+    }
+
+    audio.ontimeupdate = () => {
+      const per = (audio.currentTime / audio.duration) * 100;
+      document.getElementById('track-fill').style.width = per + '%';
+      document.getElementById('time-cur').innerText = formatTime(audio.currentTime);
+      document.getElementById('time-total').innerText = formatTime(audio.duration);
+    };
+
+    audio.onended = () => nextSong(); // 自动下一首
+
+    function formatTime(sec) {
+      if (isNaN(sec)) return '0:00';
+      let m = Math.floor(sec / 60);
+      let s = Math.floor(sec % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // 时间更新
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+    }, 1000);
+  </script>
+</body>
+</html>
