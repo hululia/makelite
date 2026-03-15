@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPod Classic - True Vintage Video Edition</title>
+    <title>iPod Classic - Nostalgic Video Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
@@ -68,29 +68,65 @@
 
         #cover-flow-view { width: 100%; height: 100%; background: #000; display: none; perspective: 800px; overflow: hidden; }
         .cf-container { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center; }
-        .album-card { position: absolute; width: 110px; height: 110px; background-size: cover; background-position: center; background-color: #333; transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); cursor: pointer; -webkit-box-reflect: below 2px linear-gradient(transparent, transparent 60%, rgba(255, 255, 255, 0.2)); border-radius: 4px; border: 1px solid #222; }
+        
+        /* ========================================= */
+        /* 🌟 修改：核心 Cover Flow 卡片，添加倒影 */
+        /* ========================================= */
+        .album-card { 
+            position: absolute; 
+            width: 110px; 
+            height: 110px; 
+            /* 设置自定义属性，方便伪元素继承背景图 */
+            --card-bg-image: none; 
+            background-image: var(--card-bg-image);
+            background-size: cover; 
+            background-position: center; 
+            background-color: #333; 
+            transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); 
+            cursor: pointer; 
+            border-radius: 4px; 
+            border: 1px solid #222; 
+        }
+
+        /* 🌟 新增：倒影伪元素 */
+        .album-card:after {
+            content: "";
+            position: absolute;
+            bottom: -112px; /* 高度 + 间距 (2px) */
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--card-bg-image); /* 使用自定义属性 */
+            background-size: cover;
+            background-position: center;
+            transform: scaleY(-1); /* 垂直翻转 */
+            opacity: 0.3; /* 初始倒影透明度 */
+            /* 渐变遮罩，使倒影淡出 */
+            -webkit-mask-image: linear-gradient(to bottom, transparent 40%, black);
+            mask-image: linear-gradient(to bottom, transparent 40%, black);
+            pointer-events: none; /* 确保不能点击倒影 */
+        }
+
         .album-info-overlay { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; box-sizing: border-box; }
 
-        /* ========================================= */
-        /* 🌟 核心重构：绝对定位的播放界面 (为了动画铺垫) */
-        /* ========================================= */
+        /* 绝对定位的播放界面 */
         #player-view {
             width: 100%; height: 100%; display: none; position: relative;
             background: transparent;
         }
         
         /* 封面和视频元素的初始形态：100x100 左上角 */
-        .player-art { 
+        .player-view-art { 
             position: absolute; top: 15px; left: 15px;
             width: 100px; height: 100px; border-radius: 4px; 
             object-fit: cover; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-            /* 灵魂缓动函数：让放大带有 Apple 般的物理重量感 */
+            /* 灵魂缓动函数 */
             transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
             z-index: 5;
         }
 
         .player-meta { 
-            position: absolute; top: 15px; left: 130px; /* 15 + 100 + 15 */
+            position: absolute; top: 15px; left: 130px;
             width: 155px; overflow: hidden; 
             transition: all 0.6s ease;
         }
@@ -106,24 +142,13 @@
         .track-fill { height: 100%; background: var(--apple-blue); width: 0%; pointer-events: none;}
         .time-labels { display:flex; justify-content:space-between; font-size:10px; margin-top:5px; color:#333; }
 
-        /* ========================================= */
-        /* 🎬 影院模式激活状态 (仅通过添加类名触发) */
-        /* ========================================= */
-        /* 1. 视频慢动作铺满屏幕，自动信箱模式 (Letterbox) */
-        .screen.cinema-expand .player-art {
-            top: 0; left: 0; width: 300px; height: 193px; /* 215 - 22状态栏 */
+        /* 影院模式激活状态 */
+        .screen.cinema-expand .player-view-art {
+            top: 0; left: 0; width: 300px; height: 193px;
             border-radius: 0; object-fit: contain; box-shadow: none;
         }
-        /* 2. 文字往右平移并消失 */
-        .screen.cinema-expand .player-meta {
-            opacity: 0; transform: translateX(30px); pointer-events: none;
-        }
-        /* 3. 进度条下沉并变成透明悬浮态 */
-        .screen.cinema-expand .progress-box {
-            bottom: 5px; left: 15px; width: 270px;
-            background: rgba(0,0,0,0.7); padding: 5px 8px; border-radius: 6px; box-sizing: border-box;
-            opacity: 0; /* 默认隐藏，触摸/悬浮显示 */
-        }
+        .screen.cinema-expand .player-meta { opacity: 0; transform: translateX(30px); pointer-events: none; }
+        .screen.cinema-expand .progress-box { bottom: 5px; left: 15px; width: 270px; background: rgba(0,0,0,0.7); padding: 5px 8px; border-radius: 6px; box-sizing: border-box; opacity: 0; }
         .screen.cinema-expand:hover .progress-box { opacity: 1; }
         .screen.cinema-expand .track-bar { background: rgba(255,255,255,0.3); border: none; height: 10px; border-radius: 5px; overflow: hidden; }
         .screen.cinema-expand .track-fill { background: #fff; }
@@ -148,8 +173,8 @@
             <span id="back-btn" onclick="hapticTap(10); goHome()" style="cursor:pointer">◀ Menu</span>
             <span id="clock">12:00</span>
             <span>
-                <span id="battery-display">100% 🔋</span>
-                <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; margin-left:6px;" title="Add More">➕</span>
+                <span onclick="hapticTap(15); document.getElementById('file-input').click()" style="cursor:pointer; margin-right:6px;" title="Add More">➕</span>
+                100% 🔋
             </span>
         </div>
         
@@ -173,8 +198,8 @@
             </div>
 
             <div id="player-view">
-                <img src="" id="p-img" class="player-art">
-                <video id="main-media" class="player-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
+                <img src="" id="p-img" class="player-view-art">
+                <video id="main-media" class="player-view-art" style="display:none; cursor:pointer;" playsinline onclick="hapticTap(10); playPause()"></video>
                 
                 <div class="player-meta">
                     <h3 id="p-title">Title</h3>
@@ -205,30 +230,7 @@
 </div>
 
 <script>
-    function hapticTap(strength = 20) {
-        try { if (navigator.vibrate) { navigator.vibrate(strength); return true; } } catch (e) {} return false;
-    }
-
-    // --- 真实电量获取逻辑 ---
-    function initBattery() {
-        const batDisplay = document.getElementById('battery-display');
-        if ('getBattery' in navigator) {
-            navigator.getBattery().then(bat => {
-                const updateBat = () => {
-                    const level = Math.round(bat.level * 100);
-                    const icon = bat.charging ? '⚡' : '🔋';
-                    batDisplay.innerText = `${level}% ${icon}`;
-                };
-                updateBat();
-                bat.addEventListener('levelchange', updateBat);
-                bat.addEventListener('chargingchange', updateBat);
-            });
-        } else {
-            // iOS Safari 降级显示
-            batDisplay.innerText = '100% 🔋';
-        }
-    }
-    initBattery();
+    function hapticTap(strength = 20) { try { if (navigator.vibrate) { navigator.vibrate(strength); return true; } } catch (e) {} return false; }
 
     let playlist = [];
     let currentIndex = 0;
@@ -248,7 +250,7 @@
         const filesToAdd = files.slice(0, availableSlots);
         if(filesToAdd.length === 0) return;
 
-        document.getElementById('clock').innerText = "Load..."; 
+        document.getElementById('loading-text').innerText = "Load..."; 
         
         for (let i = 0; i < filesToAdd.length; i++) {
             const file = filesToAdd[i];
@@ -342,7 +344,7 @@
     function goHome() {
         if(playlist.length === 0) return; 
         hideAllViews();
-        screenEl.classList.remove('cinema-expand'); // 退出时取消放大，平滑缩回
+        screenEl.classList.remove('cinema-expand');
         document.getElementById('list-view').style.display = 'block';
         currentMode = 'list';
     }
@@ -364,7 +366,10 @@
     function renderCF() {
         const cfContainer = document.getElementById('cf-container'); cfContainer.innerHTML = '';
         playlist.forEach((s, idx) => {
-            const img = document.createElement('div'); img.className = 'album-card'; img.style.backgroundImage = `url("${s.cover}")`;
+            const img = document.createElement('div'); 
+            img.className = 'album-card'; 
+            /* 🌟 修改：使用自定义 CSS 变量设置背景图，以便倒影能正确继承 */
+            img.style.setProperty('--card-bg-image', `url("${s.cover}")`);
             img.onclick = () => { hapticTap(10); if(idx === cfIndex) playSong(idx); else { cfIndex = idx; updateCFPositions(); } };
             cfContainer.appendChild(img);
         });
@@ -388,27 +393,16 @@
         if(Math.abs(diff) > 30 && playlist.length > 0) { hapticTap(15); if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } else { cfIndex = Math.max(cfIndex - 1, 0); } updateCFPositions(); }
     });
 
-    // --- 🌟 核心播放逻辑：触发慢动作扩张 ---
     function playSong(idx) {
         if(playlist.length === 0) return;
-        currentIndex = idx; const s = playlist[idx];
+        currentIndex = idx; const s = playlist[idx]; media.src = s.url; document.getElementById('p-title').innerText = s.title; document.getElementById('p-artist').innerText = s.artist; document.getElementById('p-type').innerText = s.typeLabel; 
         
-        media.src = s.url;
-        document.getElementById('p-title').innerText = s.title;
-        document.getElementById('p-artist').innerText = s.artist;
-        document.getElementById('p-type').innerText = s.typeLabel; 
-        
-        screenEl.classList.remove('cinema-expand'); // 每次切歌先复位
+        screenEl.classList.remove('cinema-expand');
 
         if (s.isVideo) {
             document.getElementById('p-img').style.display = 'none';
             media.style.display = 'block';
-            
-            // 魔法延迟：让浏览器先渲染 100x100 的小方块，再在一瞬间加上 expand 类触发动画
-            setTimeout(() => {
-                screenEl.classList.add('cinema-expand');
-            }, 50);
-            
+            setTimeout(() => { screenEl.classList.add('cinema-expand'); }, 50);
         } else {
             document.getElementById('p-img').style.display = 'block';
             document.getElementById('p-img').src = s.cover;
@@ -416,41 +410,20 @@
         }
         
         hideAllViews();
-        document.getElementById('player-view').style.display = 'block'; // 注意这里改成了 block，依赖子元素的 absolute 定位
+        document.getElementById('player-view').style.display = 'block';
         currentMode = 'player';
         media.play();
     }
 
     function playPause() { if(playlist.length === 0) return; if(media.paused) media.play(); else media.pause(); }
-
-    function nextSong() {
-        if(playlist.length === 0) return;
-        if(currentMode === 'cover-flow') { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); updateCFPositions(); } 
-        else { currentIndex = (currentIndex + 1) % playlist.length; playSong(currentIndex); }
-    }
-
-    function prevSong() {
-        if(playlist.length === 0) return;
-        if(currentMode === 'cover-flow') { cfIndex = Math.max(cfIndex - 1, 0); updateCFPositions(); } 
-        else { currentIndex = (currentIndex - 1 + playlist.length) % playlist.length; playSong(currentIndex); }
-    }
-
+    function nextSong() { if(playlist.length === 0) return; if(currentMode === 'cover-flow') { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); updateCFPositions(); } else { currentIndex = (currentIndex + 1) % playlist.length; playSong(currentIndex); } }
+    function prevSong() { if(playlist.length === 0) return; if(currentMode === 'cover-flow') { cfIndex = Math.max(cfIndex - 1, 0); updateCFPositions(); } else { currentIndex = (currentIndex - 1 + playlist.length) % playlist.length; playSong(currentIndex); } }
     function handleCenterClick() { if(currentMode === 'cover-flow') playSong(cfIndex); }
     function seek(e) { const bar = document.getElementById('track-bar'); const per = e.offsetX / bar.offsetWidth; media.currentTime = per * media.duration; }
-
-    media.ontimeupdate = () => {
-        const per = (media.currentTime / media.duration) * 100;
-        document.getElementById('track-fill').style.width = per + '%';
-        document.getElementById('time-cur').innerText = formatTime(media.currentTime);
-        document.getElementById('time-total').innerText = formatTime(media.duration);
-    };
-
+    media.ontimeupdate = () => { const per = (media.currentTime / media.duration) * 100; document.getElementById('track-fill').style.width = per + '%'; document.getElementById('time-cur').innerText = formatTime(media.currentTime); document.getElementById('time-total').innerText = formatTime(media.duration); };
     media.onended = () => nextSong(); 
     function formatTime(sec) { if(isNaN(sec)) return "0:00"; let m = Math.floor(sec/60); let s = Math.floor(sec%60); return `${m}:${s<10?'0':''}${s}`; }
-
-    setInterval(() => {
-        const now = new Date(); document.getElementById('clock').innerText = now.getHours() + ":" + (now.getMinutes()<10?'0':'') + now.getMinutes();
-    }, 1000);
+    setInterval(() => { const now = new Date(); document.getElementById('clock').innerText = now.getHours() + ":" + (now.getMinutes()<10?'0':'') + now.getMinutes(); }, 1000);
 
 </script>
 </body>
