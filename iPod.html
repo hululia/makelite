@@ -190,6 +190,30 @@
     const defaultAudioCover = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-family="sans-serif" font-size="40" fill="%23999" text-anchor="middle">🎵</text></svg>';
     const defaultVideoCover = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-family="sans-serif" font-size="40" fill="%23999" text-anchor="middle">🎬</text></svg>';
 
+    // Haptics (best-effort): iOS/iPadOS Safari 对 navigator.vibrate 支持不稳定；
+    // 这里做“能震就震、不能就忽略”，不影响功能。
+    function hapticTap(ms = 15) {
+        try {
+            if (navigator && typeof navigator.vibrate === 'function') {
+                navigator.vibrate(ms);
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    // 给常用交互元素加轻微触觉反馈（无需改每个 onclick）
+    document.addEventListener('click', (e) => {
+        const el = e.target;
+        if (!el || !(el instanceof Element)) return;
+
+        const hit = el.closest('.import-btn, .menu-item, .wheel-btn, .center-select, #back-btn, #track-bar, .album-card');
+        if (!hit) return;
+
+        const ms = hit.classList.contains('center-select') ? 10 : 15;
+        hapticTap(ms);
+    }, true);
+
     // 1. 本地文件追加读取与解析
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
