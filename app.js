@@ -5,11 +5,13 @@ const STORAGE_KEY = 'freshkeeper_products';
 const PIXEL_ICONS = [
   { id: 'cleanser', emoji: '🧼', label: 'Cleanser' },
   { id: 'toner', emoji: '💧', label: 'Toner' },
-  { id: 'lotion', emoji: '🧴', label: 'Lotion' },
+  { id: 'lotion', emoji: '🧴', label: 'Lotion' }
+  { id: 'banana', emoji: '🫙', label: '底妆' },
+  { id: 'banana', emoji: '👁️', label: '眼妆' },
   { id: 'cream', emoji: '🍦', label: 'Cream' },
   { id: 'lipstick', emoji: '💄', label: 'Lipstick' },
   { id: 'serum', emoji: '🧪', label: 'Serum' },
-  { id: 'banana', emoji: '🍌', label: 'Banana' },
+  { id: 'banana', emoji: '💊', label: 'Health' },
 ];
 
 const INITIAL_PRODUCTS = [
