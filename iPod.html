@@ -10,6 +10,7 @@
             --ipod-bg: linear-gradient(135deg, #e0e0e0 0%, #b0b0b0 100%);
             --screen-bg: #f5f5f7;
             --apple-blue: #007aff;
+            --apple-red: #ff3b30;
         }
 
         body {
@@ -26,17 +27,19 @@
             border: 1px solid #999;
         }
 
+        /* 更新：宽度 300px，下移 2px */
         .screen {
             width: 300px; height: 215px; background-color: #000;
             border: 3px solid #222; border-radius: 6px; overflow: hidden;
             position: relative; display: flex; flex-direction: column;
+            margin-top: 2px; 
         }
 
         .status-bar {
             height: 22px; background: linear-gradient(to bottom, #eee, #bbb);
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 8px; font-size: 11px; font-weight: bold; color: #333;
-            border-bottom: 1px solid #666; z-index: 100;
+            border-bottom: 1px solid #666; z-index: 100; flex-shrink: 0;
         }
 
         .content-area { flex: 1; background: #fff; position: relative; overflow: hidden; }
@@ -53,13 +56,29 @@
         }
         .import-btn:active { background: #0056b3; }
 
-        /* 列表视图 */
+        /* 列表视图与左滑删除 UI */
         #list-view { width: 100%; height: 100%; display: none; }
+        
+        .menu-item-wrapper {
+            position: relative; overflow: hidden; background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .delete-btn {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 70px;
+            background-color: var(--apple-red); color: white; display: flex;
+            align-items: center; justify-content: center; font-weight: bold;
+            font-size: 13px; cursor: pointer; z-index: 1;
+        }
+
         .menu-item {
             padding: 10px 12px; font-size: 14px; font-weight: bold;
-            border-bottom: 1px solid #eee; display: flex; justify-content: space-between; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; position: relative; z-index: 2;
+            cursor: pointer;
         }
-        .menu-item:active { background: var(--apple-blue); color: white; }
+        /* 当没有在拖拽时，点击出现经典蓝色高亮 */
+        .menu-item:active { background: #f0f0f5; }
 
         /* Cover Flow */
         #cover-flow-view {
@@ -89,8 +108,8 @@
             padding: 15px; box-sizing: border-box; background: #fff;
         }
         .player-header { display: flex; gap: 15px; }
-        .player-art { width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); object-fit: cover; background: #000; }
-        .player-meta { width: 130px; overflow: hidden; }
+        .player-art { width: 100px; height: 100px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); object-fit: cover; background: #000; flex-shrink: 0; }
+        .player-meta { width: 140px; overflow: hidden; }
         .player-meta h3 { margin: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .player-meta p { margin: 5px 0; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -135,8 +154,12 @@
             </div>
 
             <div id="list-view">
-                <div class="menu-item" onclick="hapticTap(10); showCoverFlow()"><span>Cover Flow</span><span>&gt;</span></div>
-                <div class="menu-item" onclick="hapticTap(10); toggleSongList()"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
+                <div class="menu-item-wrapper" onclick="hapticTap(10); showCoverFlow()">
+                    <div class="menu-item"><span>Cover Flow</span><span>&gt;</span></div>
+                </div>
+                <div class="menu-item-wrapper" onclick="hapticTap(10); toggleSongList()">
+                    <div class="menu-item"><span>Media Library (<span id="song-count">0</span>)</span><span>&gt;</span></div>
+                </div>
                 <div id="song-list-container" style="overflow-y:auto; height:155px; display:none;"></div>
             </div>
 
@@ -224,7 +247,6 @@
             const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4');
             const fileURL = URL.createObjectURL(file);
             
-            // 提取文件扩展名以判断格式
             const extMatch = file.name.match(/\.([^.]+)$/);
             const ext = extMatch ? extMatch[1].toUpperCase() : 'AUDIO';
 
@@ -238,7 +260,6 @@
                 typeLabel: isVideo ? 'MP4 Video' : `${ext} Audio`
             };
 
-            // 如果是音频，解析 ID3
             if (!isVideo) {
                 await new Promise((resolve) => {
                     jsmediatags.read(file, {
@@ -277,19 +298,123 @@
         e.target.value = '';
     });
 
-    // 2. 初始化列表
+    // 2. 初始化列表并附加【左滑删除】逻辑
     function initListView() {
         const container = document.getElementById('song-list-container');
         container.innerHTML = '';
         playlist.forEach((s, idx) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'menu-item-wrapper';
+
+            // 删除按钮（底层）
+            const delBtn = document.createElement('div');
+            delBtn.className = 'delete-btn';
+            delBtn.innerText = 'Delete';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteSong(idx);
+            };
+
+            // 内容区（上层，可滑动）
             const div = document.createElement('div');
             div.className = 'menu-item';
             div.style.fontSize = '12px';
             div.innerHTML = `<span>${s.isVideo ? '🎬' : '🎵'} ${s.title}</span>`;
-            div.onclick = () => { hapticTap(10); playSong(idx); }; // 列表点击震动
-            container.appendChild(div);
+
+            // 滑动逻辑监听器
+            let startX = 0;
+            let isDragging = false;
+
+            const handleStart = (clientX) => {
+                startX = clientX;
+                isDragging = true;
+                div.style.transition = 'none'; // 滑动时取消动画，跟手
+            };
+
+            const handleMove = (clientX) => {
+                if (!isDragging) return;
+                let diff = clientX - startX;
+                // 只能向左滑，且最多滑出 70px (删除按钮的宽度)
+                if (diff < 0) {
+                    div.style.transform = `translateX(${Math.max(diff, -70)}px)`;
+                } else {
+                    div.style.transform = `translateX(0px)`;
+                }
+            };
+
+            const handleEnd = (clientX) => {
+                if (!isDragging) return;
+                isDragging = false;
+                div.style.transition = 'transform 0.2s ease'; // 松手时加上动画
+                
+                let diff = clientX - startX;
+                if (diff < -35) {
+                    // 滑动超过一半，吸附打开删除按钮
+                    div.style.transform = `translateX(-70px)`;
+                    hapticTap(15);
+                } else {
+                    // 滑动不够，弹回原位
+                    div.style.transform = `translateX(0px)`;
+                    
+                    // 如果基本没有移动距离（绝对值 < 5px），判定为点击事件 -> 播放音乐
+                    if (Math.abs(diff) < 5) {
+                        hapticTap(10);
+                        playSong(idx);
+                    }
+                }
+            };
+
+            // 绑定 Touch 事件 (手机)
+            div.addEventListener('touchstart', e => handleStart(e.touches[0].clientX), {passive: true});
+            div.addEventListener('touchmove', e => handleMove(e.touches[0].clientX), {passive: true});
+            div.addEventListener('touchend', e => handleEnd(e.changedTouches[0].clientX));
+
+            // 绑定 Mouse 事件 (电脑)
+            div.addEventListener('mousedown', e => handleStart(e.clientX));
+            div.addEventListener('mousemove', e => handleMove(e.clientX));
+            div.addEventListener('mouseup', e => handleEnd(e.clientX));
+            div.addEventListener('mouseleave', e => { if(isDragging) handleEnd(e.clientX); });
+
+            wrapper.appendChild(delBtn);
+            wrapper.appendChild(div);
+            container.appendChild(wrapper);
         });
     }
+
+    // 专门处理删除逻辑的函数
+    function deleteSong(idx) {
+        hapticTap(30); // 强震动反馈删除动作
+        const wasPlaying = (currentIndex === idx && currentMode === 'player');
+        
+        // 从列表中移除
+        playlist.splice(idx, 1);
+        document.getElementById('song-count').innerText = playlist.length;
+        
+        // 调整游标以防止越界错乱
+        if (currentIndex > idx) currentIndex--;
+        if (cfIndex > idx) cfIndex--;
+        if (cfIndex >= playlist.length) cfIndex = Math.max(0, playlist.length - 1);
+        
+        // 如果删光了
+        if (playlist.length === 0) {
+            media.pause();
+            goHome();
+        } 
+        // 如果删掉的是正在播放的歌
+        else if (wasPlaying) {
+            media.pause();
+            goHome(); // 退回主界面
+        } 
+        // 重新渲染当前视图
+        else if (currentMode === 'cover-flow') {
+            renderCF();
+        }
+
+        // 重新渲染列表 UI
+        initListView();
+    }
+
+    // --- 以下为原有的视图控制和播放逻辑 ---
 
     function hideAllViews() {
         document.getElementById('import-view').style.display = 'none';
@@ -326,7 +451,7 @@
             img.className = 'album-card';
             img.style.backgroundImage = `url("${s.cover}")`;
             img.onclick = () => {
-                hapticTap(10); // CoverFlow 点击震动
+                hapticTap(10); 
                 if(idx === cfIndex) playSong(idx);
                 else { cfIndex = idx; updateCFPositions(); }
             };
@@ -356,20 +481,20 @@
         });
     }
 
-    // 滑动支持
+    // Cover Flow 滑动支持
     let touchStartX = 0;
     document.getElementById('cover-flow-view').addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
     document.getElementById('cover-flow-view').addEventListener('touchend', e => {
         let diff = touchStartX - e.changedTouches[0].clientX;
         if(Math.abs(diff) > 30 && playlist.length > 0) {
-            hapticTap(15); // 滑动成功触发震动
+            hapticTap(15); 
             if(diff > 0) { cfIndex = Math.min(cfIndex + 1, playlist.length - 1); } 
             else { cfIndex = Math.max(cfIndex - 1, 0); }
             updateCFPositions();
         }
     });
 
-    // 5. 播放与媒体控制
+    // 播放与媒体控制
     function playSong(idx) {
         if(playlist.length === 0) return;
         currentIndex = idx;
@@ -378,7 +503,7 @@
         media.src = s.url;
         document.getElementById('p-title').innerText = s.title;
         document.getElementById('p-artist').innerText = s.artist;
-        document.getElementById('p-type').innerText = s.typeLabel; // 动态显示是 WAV, FLAC, MP3 还是 MP4
+        document.getElementById('p-type').innerText = s.typeLabel; 
         
         if (s.isVideo) {
             document.getElementById('p-img').style.display = 'none';
